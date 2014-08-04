@@ -2,16 +2,19 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "../Cute/String.h"
 #include "Proxy.h"
 
-#define DIE(p, value, msg) if (value < 0) {if (p->onError != NULL) {p->onError(msg);} return;}
+#define DIE(p, value, msg) if (value < 0) {if (p->onError != NULL) {p->onError(msg);} return value;}
 
 #define RW_STATE_NONE 0
 #define RW_STATE_READ 2
@@ -30,6 +33,75 @@ _info(const char* fmt, ...) {
         printf("INFO: ");
         vprintf(fmt, ap);
         printf("\n");
+}
+
+int disconnect_clients(ProxyServer *p) {
+}
+
+int connect_to_server(ProxyServer *p, const char *host, int port) {
+        _info("Connecting to %s:%d", host, port);
+
+        char port_str[128];
+
+        snprintf(port_str, sizeof(port_str), "%d", port);
+
+        struct addrinfo hints, *res;
+
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = PF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        _info("Resolving name...");
+        int status = getaddrinfo(host, port_str, &hints, &res);
+        DIE(p, status, "Failed to resolve address.");
+        if (res == NULL) {
+                _info("Failed to resolve address: %s", host);
+                DIE(p, -1, "Failed to resolve address");
+        }
+
+        int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        DIE(p, sock, "Failed to open socket.");
+
+        status = connect(sock, res->ai_addr, res->ai_addrlen);
+        DIE(p, status, "Failed to connect to port.");
+
+        status = fcntl(sock, F_SETFL, O_NONBLOCK);
+        DIE(p, status, "Failed to set non blocking mode for socket.");
+
+        freeaddrinfo(res);
+
+	return sock;
+}
+
+int schedule_write_to_client(Request *req) {
+        if (req->clientFd <= 0) {
+                return -1;
+        }
+        if (req->clientIOFlag & RW_STATE_WRITE) {
+                //Already writing
+                return -2;
+        }
+        req->clientWriteLength = length;
+        req->clientWriteCompleted = 0;
+        req->clientIOFlag |= RW_STATE_WRITE;
+
+        _info("Scheduling write: %d", req->clientIOFlag);
+
+        return 0;
+}
+
+int on_client_disconnect(ProxyServer *p, Request *req) {
+}
+
+int on_server_disconnect(ProxyServer *p, Request *req) {
+}
+
+int schedule_write_to_server(Request *req) {
+}
+
+int schedule_read_from_client(Request *req) {
+}
+
+int schedule_read_from_server(Request *req) {
 }
 
 void on_write_to_client_completed(ProxyServer *p, Request *req) {
@@ -80,7 +152,7 @@ int handle_client_read(ProxyServer *p, int position) {
                 buffer_start,
                 req->clientWriteLength - req->clientWriteCompleted);
 
-        _info("Write %d of %d bytes", bytesWrite, req->clientWriteLength);
+        _info("Write %d of %d bytes", bytesWritten, req->clientWriteLength);
 
         if (bytesWritten < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -96,9 +168,12 @@ int handle_client_read(ProxyServer *p, int position) {
                 return -1;
         }
 
-	req->clientWriteCompleted += bytesWrite;
+	req->clientWriteCompleted += bytesWritten;
 
 	if (req->clientWriteCompleted == req->clientWriteLength) {
+		//Clear flag
+		req->clientIOFlag = req->clientIOFlag & (~RW_STATE_WRITE);
+
 		on_write_to_client_completed(p, req);
 	}
 }
@@ -149,6 +224,9 @@ int handle_server_read(ProxyServer *p, int position) {
 	req->serverWriteCompleted += bytesWritten;
 
 	if (req->serverWriteCompleted == req->serverWriteLength) {
+		//Clear flag
+		req->serverIOFlag = req->serverIOFlag & (~RW_STATE_WRITE);
+
 		on_write_to_server_completed(p, req);
 	}
 }
@@ -175,6 +253,14 @@ int handle_client_write(ProxyServer *p, int position) {
                 return -1;
         }
 
+	//Check to see if there is any pending write to the server
+	//If so, do not read the data from the client now.
+	if (req->serverIOFlag & RW_STATE_WRITE) {
+		_info("Write to server is pending. Will not read from client.");
+		
+		return -1;
+	}
+
         char *buffer_start = req->clientReadBuffer + req->clientReadCompleted;
         int bytesRead = read(req->clientFd,
                 buffer_start,
@@ -200,6 +286,9 @@ int handle_client_write(ProxyServer *p, int position) {
 	req->clientReadCompleted += bytesRead;
 
 	if (req->clientReadCompleted == req->clientReadLength) {
+		//Clear flag
+		req->clientIOFlag = req->clientIOFlag & (~RW_STATE_READ);
+
 		on_read_from_client_completed(p, req);
 	}
 }
@@ -226,6 +315,14 @@ int handle_server_write(ProxyServer *p, int position) {
                 return -1;
         }
 
+	//Check to see if there is any pending write to the client
+	//If so, do not read the data from the server now.
+	if (req->clientIOFlag & RW_STATE_WRITE) {
+		_info("Write to client is pending. Will not read from server.");
+		
+		return -1;
+	}
+
         char *buffer_start = req->serverReadBuffer + req->serverReadCompleted;
         int bytesRead = read(req->serverFd,
                 buffer_start,
@@ -251,6 +348,9 @@ int handle_server_write(ProxyServer *p, int position) {
 	req->serverReadCompleted += bytesRead;
 
 	if (req->serverReadCompleted == req->serverReadLength) {
+		//Clear flag
+		req->serverIOFlag = req->serverIOFlag & (~RW_STATE_READ);
+
 		on_read_from_server_completed(p, req);
 	}
 }
@@ -315,8 +415,7 @@ int add_client_fd(ProxyServer *p, int clientFd) {
         return -1;
 }
 
-void
-server_loop(ProxyServer *p) {
+int server_loop(ProxyServer *p) {
         fd_set readFdSet, writeFdSet;
         struct timeval timeout;
 
@@ -379,7 +478,7 @@ void deleteProxyServer(ProxyServer *p) {
 }
 
 
-void proxyServerStart(ProxyServer* p) {
+int proxyServerStart(ProxyServer* p) {
         int status;
 
         int sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -415,4 +514,5 @@ void proxyServerStart(ProxyServer* p) {
 
         close(sock);
 }
+
 

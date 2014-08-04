@@ -2,7 +2,7 @@ typedef struct _Request {
 	int parseState;
 	int clientFd;
 	int serverFd;
-	String *method;
+	//String *method;
 	int contentLength;
 	char clientReadBuffer[1024];
 	char clientWriteBuffer[1024];
@@ -30,6 +30,6 @@ typedef struct _ProxyServer {
 } ProxyServer;
 
 ProxyServer* newProxyServer(int port);
-void proxyServerStart(ProxyServer* server);
+int proxyServerStart(ProxyServer* server);
 void deleteProxyServer(ProxyServer* server);
 
