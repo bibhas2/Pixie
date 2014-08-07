@@ -36,6 +36,8 @@ _info(const char* fmt, ...) {
 }
 
 int disconnect_clients(ProxyServer *p) {
+
+	return 0;
 }
 
 int connect_to_server(ProxyServer *p, const char *host, int port) {
@@ -74,55 +76,83 @@ int connect_to_server(ProxyServer *p, const char *host, int port) {
 
 int schedule_write_to_client(Request *req) {
         if (req->clientFd <= 0) {
+		_info("Can not write to invalid client socket.");
+
                 return -1;
         }
         if (req->clientIOFlag & RW_STATE_WRITE) {
                 //Already writing
+		_info("Write to client is already scheduled.");
+
                 return -2;
         }
-        req->clientWriteLength = length;
         req->clientWriteCompleted = 0;
         req->clientIOFlag |= RW_STATE_WRITE;
 
-        _info("Scheduling write: %d", req->clientIOFlag);
+        _info("Scheduling write to client: %d", req->clientFd);
 
         return 0;
 }
 
+int schedule_write_to_server(Request *req) {
+        if (req->serverFd <= 0) {
+		_info("Can not write to invalid server socket.");
+
+                return -1;
+        }
+        if (req->serverIOFlag & RW_STATE_WRITE) {
+                //Already writing
+		_info("Write to server is already scheduled.");
+
+                return -2;
+        }
+        req->serverWriteCompleted = 0;
+        req->serverIOFlag |= RW_STATE_WRITE;
+
+        _info("Scheduling write to server: %d", req->serverFd);
+
+        return 0;
+}
+
+int transfer_request_to_server(ProxyServer *p, Request *req) {
+	if (req->serverFd == 0) {
+		req->serverFd = connect_to_server(p, 
+			"localhost", 80);
+
+		req->serverIOFlag |= RW_STATE_READ;
+	}
+	return schedule_write_to_server(req);
+}
+
+int shutdown_channel(ProxyServer *p, Request *req) {
+	_info("Shutting down channel. Client %d server %d",
+		req->clientFd, req->serverFd);
+
+	close(req->clientFd);
+	close(req->serverFd);
+
+	req->clientFd = 0;
+	req->serverFd = 0;
+	req->clientIOFlag = RW_STATE_NONE;
+	req->serverIOFlag = RW_STATE_NONE;
+	req->requestSize = 0;
+	req->responseSize = 0;
+	req->clientWriteCompleted = 0;
+	req->serverWriteCompleted = 0;
+
+	return 0;
+}
+
 int on_client_disconnect(ProxyServer *p, Request *req) {
+	shutdown_channel(p, req);
+
+	return 0;
 }
 
 int on_server_disconnect(ProxyServer *p, Request *req) {
-}
+	shutdown_channel(p, req);
 
-int schedule_write_to_server(Request *req) {
-}
-
-int schedule_read_from_client(Request *req) {
-}
-
-int schedule_read_from_server(Request *req) {
-}
-
-void on_write_to_client_completed(ProxyServer *p, Request *req) {
-}
-
-void on_write_to_server_completed(ProxyServer *p, Request *req) {
-}
-
-void on_read_from_client_completed(ProxyServer *p, Request *req) {
-}
-
-void on_read_from_server_completed(ProxyServer *p, Request *req) {
-}
-
-void handle_client_disconnect(ProxyServer *p, Request *req) {
-}
-
-void handle_server_disconnect(ProxyServer *p, Request *req) {
-}
-
-int handle_client_connect(ProxyServer *p, Request *req) {
+	return 0;
 }
 
 /*
@@ -136,23 +166,23 @@ int handle_client_read(ProxyServer *p, int position) {
 
                 return -1;
         }
-        if (req->clientWriteLength == 0) {
-                _info("Read buffer not setup.");
+        if (req->responseSize == 0) {
+                _info("Request buffer not setup.");
 
                 return -1;
         }
-        if (req->clientWriteLength == req->clientWriteCompleted) {
-                _info("Read was already completed.");
+        if (req->responseSize == req->clientWriteCompleted) {
+                _info("Write to client was already completed.");
 
                 return -1;
         }
 
-        char *buffer_start = req->clientWriteBuffer + req->clientWriteCompleted;
+        char *buffer_start = req->responseBuffer + req->clientWriteCompleted;
         int bytesWritten = write(req->clientFd,
                 buffer_start,
-                req->clientWriteLength - req->clientWriteCompleted);
+                req->responseSize - req->clientWriteCompleted);
 
-        _info("Write %d of %d bytes", bytesWritten, req->clientWriteLength);
+        _info("Written to client %d of %d bytes", bytesWritten, req->responseSize);
 
         if (bytesWritten < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -165,17 +195,19 @@ int handle_client_read(ProxyServer *p, int position) {
         }
         if (bytesWritten == 0) {
                 //Client has disconnected. We convert that to an error.
+		_info("Client seems to have disconnected: %d", req->clientFd);
+
                 return -1;
         }
 
 	req->clientWriteCompleted += bytesWritten;
 
-	if (req->clientWriteCompleted == req->clientWriteLength) {
+	if (req->clientWriteCompleted == req->responseSize) {
 		//Clear flag
 		req->clientIOFlag = req->clientIOFlag & (~RW_STATE_WRITE);
-
-		on_write_to_client_completed(p, req);
 	}
+
+	return 0;
 }
 
 /*
@@ -189,23 +221,18 @@ int handle_server_read(ProxyServer *p, int position) {
 
                 return -1;
         }
-        if (req->serverWriteLength == 0) {
-                _info("Read buffer not setup.");
-
-                return -1;
-        }
-        if (req->serverWriteLength == req->serverWriteCompleted) {
-                _info("Read was already completed.");
+        if (req->requestSize == 0) {
+                _info("request buffer not setup.");
 
                 return -1;
         }
 
-        char *buffer_start = req->serverWriteBuffer + req->serverWriteCompleted;
+        char *buffer_start = req->requestBuffer + req->serverWriteCompleted;
         int bytesWritten = write(req->serverFd,
                 buffer_start,
-                req->serverWriteLength - req->serverWriteCompleted);
+                req->requestSize - req->serverWriteCompleted);
 
-        _info("Write %d of %d bytes", bytesWritten, req->serverWriteLength);
+        _info("Written to server %d of %d bytes", bytesWritten, req->requestSize);
 
         if (bytesWritten < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -223,12 +250,12 @@ int handle_server_read(ProxyServer *p, int position) {
 
 	req->serverWriteCompleted += bytesWritten;
 
-	if (req->serverWriteCompleted == req->serverWriteLength) {
+	if (req->serverWriteCompleted == req->requestSize) {
 		//Clear flag
 		req->serverIOFlag = req->serverIOFlag & (~RW_STATE_WRITE);
-
-		on_write_to_server_completed(p, req);
 	}
+
+	return 0;
 }
 
 /*
@@ -236,22 +263,6 @@ int handle_server_read(ProxyServer *p, int position) {
  */
 int handle_client_write(ProxyServer *p, int position) {
 	Request *req = p->requests + position;
-
-        if (!(req->clientIOFlag & RW_STATE_READ)) {
-                _info("We are not trying to read from client socket.");
-
-                return -1;
-        }
-        if (req->clientReadLength == 0) {
-                _info("Read buffer not setup.");
-
-                return -1;
-        }
-        if (req->clientReadLength == req->clientReadCompleted) {
-                _info("Read was already completed.");
-
-                return -1;
-        }
 
 	//Check to see if there is any pending write to the server
 	//If so, do not read the data from the client now.
@@ -261,12 +272,13 @@ int handle_client_write(ProxyServer *p, int position) {
 		return -1;
 	}
 
-        char *buffer_start = req->clientReadBuffer + req->clientReadCompleted;
-        int bytesRead = read(req->clientFd,
-                buffer_start,
-                req->clientReadLength - req->clientReadCompleted);
+	req->requestSize = 0;
 
-        _info("Read %d of %d bytes", bytesRead, req->clientReadLength);
+        int bytesRead = read(req->clientFd,
+                req->requestBuffer,
+                sizeof(req->requestBuffer));
+
+        _info("Read request from client %d bytes", bytesRead);
 
         if (bytesRead < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -283,14 +295,10 @@ int handle_client_write(ProxyServer *p, int position) {
                 return -1;
         }
 
-	req->clientReadCompleted += bytesRead;
+	req->requestSize = bytesRead;
+	transfer_request_to_server(p, req);
 
-	if (req->clientReadCompleted == req->clientReadLength) {
-		//Clear flag
-		req->clientIOFlag = req->clientIOFlag & (~RW_STATE_READ);
-
-		on_read_from_client_completed(p, req);
-	}
+	return 0;
 }
 
 /*
@@ -298,22 +306,6 @@ int handle_client_write(ProxyServer *p, int position) {
  */
 int handle_server_write(ProxyServer *p, int position) {
 	Request *req = p->requests + position;
-
-        if (!(req->serverIOFlag & RW_STATE_READ)) {
-                _info("We are not trying to read from server socket.");
-
-                return -1;
-        }
-        if (req->serverReadLength == 0) {
-                _info("Read buffer not setup.");
-
-                return -1;
-        }
-        if (req->serverReadLength == req->serverReadCompleted) {
-                _info("Read was already completed.");
-
-                return -1;
-        }
 
 	//Check to see if there is any pending write to the client
 	//If so, do not read the data from the server now.
@@ -323,12 +315,13 @@ int handle_server_write(ProxyServer *p, int position) {
 		return -1;
 	}
 
-        char *buffer_start = req->serverReadBuffer + req->serverReadCompleted;
-        int bytesRead = read(req->serverFd,
-                buffer_start,
-                req->serverReadLength - req->serverReadCompleted);
+	req->responseSize = 0;
 
-        _info("Read %d of %d bytes", bytesRead, req->serverReadLength);
+        int bytesRead = read(req->serverFd,
+                req->responseBuffer,
+                sizeof(req->responseBuffer));
+
+        _info("Read response from server %d bytes", bytesRead);
 
         if (bytesRead < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -345,14 +338,10 @@ int handle_server_write(ProxyServer *p, int position) {
                 return -1;
         }
 
-	req->serverReadCompleted += bytesRead;
+	req->responseSize = bytesRead;
+	schedule_write_to_client(req);
 
-	if (req->serverReadCompleted == req->serverReadLength) {
-		//Clear flag
-		req->serverIOFlag = req->serverIOFlag & (~RW_STATE_READ);
-
-		on_read_from_server_completed(p, req);
-	}
+	return 0;
 }
 
 void
@@ -373,7 +362,8 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 
                 if (req->clientIOFlag & RW_STATE_READ) {
                         FD_SET(req->clientFd, pReadFdSet);
-                } else if (req->clientIOFlag & RW_STATE_WRITE) {
+                } 
+		if (req->clientIOFlag & RW_STATE_WRITE) {
                         FD_SET(req->clientFd, pWriteFdSet);
                 }
 
@@ -382,8 +372,11 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
                 }
 
                 if (req->serverIOFlag & RW_STATE_READ) {
+			_info("Adding server to read FD");
                         FD_SET(req->serverFd, pReadFdSet);
-                } else if (req->serverIOFlag & RW_STATE_WRITE) {
+                } 
+		if (req->serverIOFlag & RW_STATE_WRITE) {
+			_info("Adding server to write FD");
                         FD_SET(req->serverFd, pWriteFdSet);
                 }
         }
@@ -399,20 +392,23 @@ int add_client_fd(ProxyServer *p, int clientFd) {
                         req->serverFd = 0;
                         req->clientIOFlag = RW_STATE_NONE;
                         req->serverIOFlag = RW_STATE_NONE;
-                        req->clientReadLength = 0;
-                        req->clientWriteLength = 0;
-                        req->clientReadCompleted = 0;
+                        req->requestSize = 0;
+                        req->responseSize = 0;
                         req->clientWriteCompleted = 0;
-                        req->serverReadLength = 0;
-                        req->serverWriteLength = 0;
-                        req->serverReadCompleted = 0;
                         req->serverWriteCompleted = 0;
 
                         return i;
                 }
         }
 
-        return -1;
+        return 0;
+}
+
+int handle_client_connect(ProxyServer *p, Request *req) {
+	//Start reading from client
+	req->clientIOFlag = RW_STATE_READ;
+
+	return 0;
 }
 
 int server_loop(ProxyServer *p) {
@@ -422,7 +418,7 @@ int server_loop(ProxyServer *p) {
         while (1) {
                 populate_fd_set(p, &readFdSet, &writeFdSet);
 
-                timeout.tv_sec = 60;
+                timeout.tv_sec = 60 * 5;
                 timeout.tv_usec = 0;
 
                 int numEvents = select(FD_SETSIZE, &readFdSet, &writeFdSet, NULL, &timeout);
@@ -464,6 +460,8 @@ int server_loop(ProxyServer *p) {
 		}
 	}
 	disconnect_clients(p);
+
+	return 0;
 }
 
 ProxyServer* newProxyServer(int port) {
@@ -471,6 +469,8 @@ ProxyServer* newProxyServer(int port) {
 
 	p->port = port;
 	p->onError = default_on_error;
+
+	return p;
 }
 
 void deleteProxyServer(ProxyServer *p) {
@@ -513,6 +513,8 @@ int proxyServerStart(ProxyServer* p) {
         server_loop(p);
 
         close(sock);
+
+	return 0;
 }
 
 

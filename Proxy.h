@@ -1,22 +1,15 @@
 typedef struct _Request {
-	int parseState;
 	int clientFd;
 	int serverFd;
 	//String *method;
-	int contentLength;
-	char clientReadBuffer[1024];
-	char clientWriteBuffer[1024];
-	char serverReadBuffer[1024];
-	char serverWriteBuffer[1024];
 	int clientIOFlag;
 	int serverIOFlag;
-	int clientReadLength;
-	int clientWriteLength;
-	int clientReadCompleted;
+
+	char requestBuffer[1024];
+	int requestSize;
+	char responseBuffer[1024];
+	int responseSize;
 	int clientWriteCompleted;
-	int serverReadLength;
-	int serverWriteLength;
-	int serverReadCompleted;
 	int serverWriteCompleted;
 } Request;
 
