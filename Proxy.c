@@ -11,7 +11,6 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "../Cute/String.h"
 #include "Proxy.h"
 
 #define DIE(p, value, msg) if (value < 0) {if (p->onError != NULL) {p->onError(msg);} return value;}
@@ -20,6 +19,12 @@
 #define RW_STATE_READ 2
 #define RW_STATE_WRITE 4
  
+#define REQ_PARSE_NONE 0
+#define REQ_PARSE_PROTOCOL 1
+#define REQ_PARSE_HEADER_NAME 2
+#define REQ_PARSE_HEADER_VALUE 3
+#define REQ_PARSE_BODY 4
+
 static void default_on_error(const char *msg) {
 	perror(msg);
 }
@@ -114,13 +119,99 @@ int schedule_write_to_server(Request *req) {
         return 0;
 }
 
+void dump_headers(Request *req) {
+	printf("Protcol [%s]\n",
+		stringAsCString(req->protocolLine));
+	for (int i = 0; i < req->headerNames->length; ++i) {
+		String *name = arrayGet(req->headerNames, i);
+		String *value = arrayGet(req->headerValues, i);
+
+		printf("Header [%s][%s]\n",
+			stringAsCString(name),
+			stringAsCString(value));
+	}
+}
+
+void process_client_request(ProxyServer *p, Request *req) {
+	if (req->requestParseState == REQ_PARSE_NONE) {
+		req->protocolLine->length = 0;
+		req->headerNames->length = 0;
+		req->headerValues->length = 0;
+		req->headerName = NULL;
+		req->headerValue = NULL;
+		req->requestParseState = REQ_PARSE_PROTOCOL;
+	}
+
+	for (int i = 0; i < req->requestSize; ++i) {
+		char ch = req->requestBuffer[i];
+		if (req->requestParseState == REQ_PARSE_PROTOCOL) {
+			if (ch == '\r') {
+				continue;
+			}
+			if (ch == '\n') {
+				//We are done with protocol line
+				req->requestParseState = REQ_PARSE_HEADER_NAME;
+				req->headerName = NULL;
+				req->headerValue = NULL;
+				req->headerNames->length = 0;
+				req->headerValues->length = 0;
+
+				continue;
+			}
+			stringAppendChar(req->protocolLine, ch);
+		} else if (req->requestParseState == REQ_PARSE_HEADER_NAME) {
+			if (ch == '\r') {
+				continue;
+			}
+			if (ch == '\n') {
+				if (req->headerName == NULL) {
+					//We are done parsing headers
+					req->requestParseState = REQ_PARSE_BODY;
+					dump_headers(req);
+				}
+				continue;
+			}
+			if (ch == ':') {
+				req->requestParseState = REQ_PARSE_HEADER_VALUE;
+				arrayAdd(req->headerNames, req->headerName);
+				req->headerName = NULL;
+
+				continue;
+			}
+			
+			if (req->headerName == NULL) {
+				req->headerName = newString();
+			}
+
+			stringAppendChar(req->headerName, ch);
+		} else if (req->requestParseState == REQ_PARSE_HEADER_VALUE) {
+			if (ch == '\r') {
+				continue;
+			}
+			if (ch == '\n') {
+				req->requestParseState = REQ_PARSE_HEADER_NAME;
+				arrayAdd(req->headerValues, req->headerValue);
+				req->headerValue = NULL;
+
+				continue;
+			}
+			if (req->headerValue == NULL) {
+				req->headerValue = newString();
+			}
+			stringAppendChar(req->headerValue, ch);
+		}
+	}
+}
+
 int transfer_request_to_server(ProxyServer *p, Request *req) {
 	if (req->serverFd == 0) {
 		req->serverFd = connect_to_server(p, 
-			"localhost", 80);
+			"vikingogames.com", 80);
 
 		req->serverIOFlag |= RW_STATE_READ;
 	}
+	process_client_request(p, req);
+
 	return schedule_write_to_server(req);
 }
 
@@ -139,6 +230,11 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	req->responseSize = 0;
 	req->clientWriteCompleted = 0;
 	req->serverWriteCompleted = 0;
+	req->headerNames->length = 0;
+	req->headerValues->length = 0;
+	req->headerName = NULL;
+	req->headerValue = NULL;
+	req->requestParseState = REQ_PARSE_NONE;
 
 	return 0;
 }
@@ -295,6 +391,7 @@ int handle_client_write(ProxyServer *p, int position) {
                 return -1;
         }
 
+	fwrite(req->requestBuffer, 1, bytesRead, stdout);
 	req->requestSize = bytesRead;
 	transfer_request_to_server(p, req);
 
@@ -338,6 +435,7 @@ int handle_server_write(ProxyServer *p, int position) {
                 return -1;
         }
 
+	fwrite(req->responseBuffer, 1, bytesRead, stdout);
 	req->responseSize = bytesRead;
 	schedule_write_to_client(req);
 
@@ -469,6 +567,14 @@ ProxyServer* newProxyServer(int port) {
 
 	p->port = port;
 	p->onError = default_on_error;
+
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		Request *req = p->requests + i;
+		
+		req->protocolLine = newString();
+		req->headerNames = newArray(10);
+		req->headerValues = newArray(10);
+	}
 
 	return p;
 }

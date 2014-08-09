@@ -1,7 +1,15 @@
+#include "../Cute/String.h"
+#include "../Cute/Array.h"
+
 typedef struct _Request {
 	int clientFd;
 	int serverFd;
-	//String *method;
+	String *protocolLine;
+	String *headerName;
+	String *headerValue;
+	Array *headerNames;
+	Array *headerValues;
+	int requestParseState;
 	int clientIOFlag;
 	int serverIOFlag;
 
