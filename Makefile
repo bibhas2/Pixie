@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=c99 
+CFLAGS=-std=gnu99 
 OBJS=Proxy.o main.o
 HEADERS=Proxy.h
 
