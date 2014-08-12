@@ -19,11 +19,12 @@
 #define RW_STATE_READ 2
 #define RW_STATE_WRITE 4
  
-#define REQ_PARSE_NONE 0
+#define REQ_STATE_NONE 0
 #define REQ_PARSE_PROTOCOL 1
 #define REQ_PARSE_HEADER_NAME 2
 #define REQ_PARSE_HEADER_VALUE 3
 #define REQ_READ_BODY 4
+#define REQ_READ_RESPONSE 5
 
 static void default_on_error(const char *msg) {
 	perror(msg);
@@ -271,7 +272,7 @@ void output_headers(ProxyServer *p, Request *req) {
 }
 
 void read_request_header(ProxyServer *p, Request *req) {
-	if (req->requestState == REQ_PARSE_NONE) {
+	if (req->requestState == REQ_STATE_NONE) {
 		req->protocolLine->length = 0;
 		req->headerNames->length = 0;
 		req->headerValues->length = 0;
@@ -347,6 +348,11 @@ void read_request_header(ProxyServer *p, Request *req) {
 }
 
 int transfer_request_to_server(ProxyServer *p, Request *req) {
+	if (req->requestState == REQ_READ_RESPONSE) {
+		_info("A new request using an old connection.");
+		req->requestState = REQ_STATE_NONE;
+	}
+
 	if (req->requestState < REQ_READ_BODY) {
 		read_request_header(p, req);
 	} else {
@@ -373,7 +379,7 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	req->headerValues->length = 0;
 	req->headerName = NULL;
 	req->headerValue = NULL;
-	req->requestState = REQ_PARSE_NONE;
+	req->requestState = REQ_STATE_NONE;
 
 	return 0;
 }
@@ -578,6 +584,7 @@ int handle_server_write(ProxyServer *p, int position) {
         }
 
 	//fwrite(req->responseBuffer->buffer, 1, bytesRead, stdout);
+	req->requestState = REQ_READ_RESPONSE;
 	req->responseBuffer->length = bytesRead;
 	schedule_write_to_client(req);
 
