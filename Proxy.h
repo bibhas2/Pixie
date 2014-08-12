@@ -1,10 +1,16 @@
 #include "../Cute/String.h"
 #include "../Cute/Array.h"
+#include "../Cute/Buffer.h"
 
 typedef struct _Request {
 	int clientFd;
 	int serverFd;
 	String *protocolLine;
+	String *protocol;
+	String *method;
+	String *host;
+	String *port;
+	String *path;
 	String *headerName;
 	String *headerValue;
 	Array *headerNames;
@@ -13,10 +19,8 @@ typedef struct _Request {
 	int clientIOFlag;
 	int serverIOFlag;
 
-	char requestBuffer[1024];
-	int requestSize;
-	char responseBuffer[1024];
-	int responseSize;
+	Buffer *requestBuffer;
+	Buffer *responseBuffer;
 	int clientWriteCompleted;
 	int serverWriteCompleted;
 } Request;
