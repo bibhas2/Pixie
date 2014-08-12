@@ -26,3 +26,11 @@ Configure proxy setting to localhost:8080.
 Run pixie:
 
 ./pixie
+
+To use an alternate port, use -p:
+
+./pixie -p 9090
+
+To enable tracing:
+
+./pixie -v

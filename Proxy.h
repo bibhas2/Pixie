@@ -38,4 +38,4 @@ typedef struct _ProxyServer {
 ProxyServer* newProxyServer(int port);
 int proxyServerStart(ProxyServer* server);
 void deleteProxyServer(ProxyServer* server);
-
+void proxySetTrace(int t);

@@ -26,12 +26,22 @@
 #define REQ_READ_BODY 4
 #define REQ_READ_RESPONSE 5
 
+static int bTrace = 0;
+
 static void default_on_error(const char *msg) {
 	perror(msg);
 }
 
+void proxySetTrace(int t) {
+	bTrace = t;
+}
+
 static void
 _info(const char* fmt, ...) {
+	if (bTrace == 0) {
+		return;
+	}
+
         va_list ap;
 
         va_start(ap, fmt);
@@ -197,18 +207,18 @@ void output_headers(ProxyServer *p, Request *req) {
 		}
 	}
 
-	printf("Protcol line [%s]\n", stringAsCString(req->protocolLine));
-	printf("Method [%s]\n", stringAsCString(req->method));
-	printf("Protocol [%s]\n", stringAsCString(req->protocol));
-	printf("Host [%s]\n", stringAsCString(req->host));
-	printf("Port [%s]\n", stringAsCString(req->port));
-	printf("Path [%s]\n", stringAsCString(req->path));
+	_info("Protcol line [%s]\n", stringAsCString(req->protocolLine));
+	_info("Method [%s]\n", stringAsCString(req->method));
+	_info("Protocol [%s]\n", stringAsCString(req->protocol));
+	_info("Host [%s]\n", stringAsCString(req->host));
+	_info("Port [%s]\n", stringAsCString(req->port));
+	_info("Path [%s]\n", stringAsCString(req->path));
 
 	for (int i = 0; i < req->headerNames->length; ++i) {
 		String *name = arrayGet(req->headerNames, i);
 		String *value = arrayGet(req->headerValues, i);
 
-		printf("Header [%s][%s]\n",
+		_info("Header [%s][%s]\n",
 			stringAsCString(name),
 			stringAsCString(value));
 	}
@@ -784,6 +794,7 @@ int proxyServerStart(ProxyServer* p) {
         addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port = htons(p->port);
 
+	_info("Proxy server binding to port: %d", p->port);
         status = bind(sock, (struct sockaddr*) &addr, sizeof(addr));
 
         DIE(p, status, "Failed to bind to port.");
