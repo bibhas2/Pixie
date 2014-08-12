@@ -56,6 +56,28 @@ int disconnect_clients(ProxyServer *p) {
 	return 0;
 }
 
+int shutdown_channel(ProxyServer *p, Request *req) {
+	_info("Shutting down channel. Client %d server %d",
+		req->clientFd, req->serverFd);
+
+	close(req->clientFd);
+	close(req->serverFd);
+
+	req->clientFd = 0;
+	req->serverFd = 0;
+	req->clientIOFlag = RW_STATE_NONE;
+	req->serverIOFlag = RW_STATE_NONE;
+	req->clientWriteCompleted = 0;
+	req->serverWriteCompleted = 0;
+	req->headerNames->length = 0;
+	req->headerValues->length = 0;
+	req->headerName = NULL;
+	req->headerValue = NULL;
+	req->requestState = REQ_STATE_NONE;
+
+	return 0;
+}
+
 int connect_to_server(ProxyServer *p, const char *host, int port) {
         _info("Connecting to %s:%d", host, port);
 
@@ -275,6 +297,12 @@ void output_headers(ProxyServer *p, Request *req) {
 		req->serverFd = connect_to_server( 
 			p, stringAsCString(req->host), port);
 
+		if (req->serverFd < 0) {
+			_info("Failed to connect to server. Disconnecting.");
+			shutdown_channel(p, req);
+
+			return;
+		}
 		//Enable read from server
 		req->serverIOFlag |= RW_STATE_READ;
 	}
@@ -368,28 +396,6 @@ int transfer_request_to_server(ProxyServer *p, Request *req) {
 	} else {
 		return schedule_write_to_server(req);
 	}
-
-	return 0;
-}
-
-int shutdown_channel(ProxyServer *p, Request *req) {
-	_info("Shutting down channel. Client %d server %d",
-		req->clientFd, req->serverFd);
-
-	close(req->clientFd);
-	close(req->serverFd);
-
-	req->clientFd = 0;
-	req->serverFd = 0;
-	req->clientIOFlag = RW_STATE_NONE;
-	req->serverIOFlag = RW_STATE_NONE;
-	req->clientWriteCompleted = 0;
-	req->serverWriteCompleted = 0;
-	req->headerNames->length = 0;
-	req->headerValues->length = 0;
-	req->headerName = NULL;
-	req->headerValue = NULL;
-	req->requestState = REQ_STATE_NONE;
 
 	return 0;
 }
