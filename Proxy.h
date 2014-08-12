@@ -13,9 +13,10 @@ typedef struct _Request {
 	String *path;
 	String *headerName;
 	String *headerValue;
+	Buffer *requestBodyOverflowBuffer;
 	Array *headerNames;
 	Array *headerValues;
-	int requestParseState;
+	int requestState;
 	int clientIOFlag;
 	int serverIOFlag;
 

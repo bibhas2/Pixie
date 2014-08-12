@@ -23,7 +23,7 @@
 #define REQ_PARSE_PROTOCOL 1
 #define REQ_PARSE_HEADER_NAME 2
 #define REQ_PARSE_HEADER_VALUE 3
-#define REQ_PARSE_BODY 4
+#define REQ_READ_BODY 4
 
 static void default_on_error(const char *msg) {
 	perror(msg);
@@ -126,7 +126,7 @@ int schedule_write_to_server(Request *req) {
 #define PROT_PORT 4
 #define PROT_PATH 5
 
-void process_headers(Request *req) {
+void output_headers(ProxyServer *p, Request *req) {
 	//Parse the protocol line
 	int state = PROT_NONE;
 
@@ -182,11 +182,16 @@ void process_headers(Request *req) {
 			if (ch == '/' || ch == ' ') {
 				//End of host name
 				state = PROT_PATH;
+
 				continue;
 			}
 			stringAppendChar(req->port, ch);
 		}
 		if (state == PROT_PATH) {
+			if (req->path->length == 0) {
+				//Add the leading '/' to path
+				stringAppendChar(req->path, '/');
+			}
 			stringAppendChar(req->path, ch);
 		}
 	}
@@ -206,27 +211,87 @@ void process_headers(Request *req) {
 			stringAsCString(name),
 			stringAsCString(value));
 	}
+	//If we have already read a bit of body save it in overflow buffer
+	req->requestBodyOverflowBuffer->length = 0;
+	if (req->requestBuffer->position < req->requestBuffer->length) {
+		bufferAppendBytes(req->requestBodyOverflowBuffer,
+			req->requestBuffer->buffer + req->requestBuffer->position,
+			req->requestBuffer->length - req->requestBuffer->position);
+	}
+
+	//Save the header and any overflow in the request buffer
+	//and then schedule it for writing
+	req->requestBuffer->length = 0;
+	const char *space = " ";
+	const char *newLine = "\r\n";
+
+	bufferAppendBytes(req->requestBuffer,
+		req->method->buffer, req->method->length);
+	bufferAppendBytes(req->requestBuffer, space, 1);
+	bufferAppendBytes(req->requestBuffer,
+		req->path->buffer, req->path->length);
+	bufferAppendBytes(req->requestBuffer, newLine, 2);
+	for (int i = 0; i < req->headerNames->length; ++i) {
+		String *name = arrayGet(req->headerNames, i);
+		String *value = arrayGet(req->headerValues, i);
+
+		bufferAppendBytes(req->requestBuffer,
+			name->buffer, name->length);
+		bufferAppendBytes(req->requestBuffer, ":", 1);
+		bufferAppendBytes(req->requestBuffer,
+			value->buffer, value->length);
+		bufferAppendBytes(req->requestBuffer, newLine, 2);
+	}
+
+	bufferAppendBytes(req->requestBuffer, newLine, 2);
+
+	//Any overflow from body?
+	if (req->requestBodyOverflowBuffer->length > 0) {
+		bufferAppendBytes(req->requestBuffer, 
+			req->requestBodyOverflowBuffer->buffer,
+			req->requestBodyOverflowBuffer->length);
+	}
+
+	if (req->serverFd == 0) {
+		int port = -1;
+
+		sscanf(stringAsCString(req->port),
+			"%d", &port);
+		if (port == -1) {
+			port = 80;
+		}
+
+		req->serverFd = connect_to_server( 
+			p, stringAsCString(req->host), port);
+
+		//Enable read from server
+		req->serverIOFlag |= RW_STATE_READ;
+	}
+	schedule_write_to_server(req);
 }
 
-void process_client_request(ProxyServer *p, Request *req) {
-	if (req->requestParseState == REQ_PARSE_NONE) {
+void read_request_header(ProxyServer *p, Request *req) {
+	if (req->requestState == REQ_PARSE_NONE) {
 		req->protocolLine->length = 0;
 		req->headerNames->length = 0;
 		req->headerValues->length = 0;
 		req->headerName = NULL;
 		req->headerValue = NULL;
-		req->requestParseState = REQ_PARSE_PROTOCOL;
+		req->requestState = REQ_PARSE_PROTOCOL;
 	}
 
+	//Reset the position
+	req->requestBuffer->position = 0;
+
 	for (int i = 0; i < req->requestBuffer->length; ++i) {
-		char ch = bufferGetByte(req->requestBuffer, i);
-		if (req->requestParseState == REQ_PARSE_PROTOCOL) {
+		char ch = bufferNextByte(req->requestBuffer);
+		if (req->requestState == REQ_PARSE_PROTOCOL) {
 			if (ch == '\r') {
 				continue;
 			}
 			if (ch == '\n') {
 				//We are done with protocol line
-				req->requestParseState = REQ_PARSE_HEADER_NAME;
+				req->requestState = REQ_PARSE_HEADER_NAME;
 				req->headerName = NULL;
 				req->headerValue = NULL;
 				req->headerNames->length = 0;
@@ -235,20 +300,22 @@ void process_client_request(ProxyServer *p, Request *req) {
 				continue;
 			}
 			stringAppendChar(req->protocolLine, ch);
-		} else if (req->requestParseState == REQ_PARSE_HEADER_NAME) {
+		} else if (req->requestState == REQ_PARSE_HEADER_NAME) {
 			if (ch == '\r') {
 				continue;
 			}
 			if (ch == '\n') {
 				if (req->headerName == NULL) {
 					//We are done parsing headers
-					req->requestParseState = REQ_PARSE_BODY;
-					process_headers(req);
+					req->requestState = REQ_READ_BODY;
+					output_headers(p, req);
+
+					break;
 				}
 				continue;
 			}
 			if (ch == ':') {
-				req->requestParseState = REQ_PARSE_HEADER_VALUE;
+				req->requestState = REQ_PARSE_HEADER_VALUE;
 				arrayAdd(req->headerNames, req->headerName);
 				req->headerName = NULL;
 
@@ -260,12 +327,12 @@ void process_client_request(ProxyServer *p, Request *req) {
 			}
 
 			stringAppendChar(req->headerName, ch);
-		} else if (req->requestParseState == REQ_PARSE_HEADER_VALUE) {
+		} else if (req->requestState == REQ_PARSE_HEADER_VALUE) {
 			if (ch == '\r') {
 				continue;
 			}
 			if (ch == '\n') {
-				req->requestParseState = REQ_PARSE_HEADER_NAME;
+				req->requestState = REQ_PARSE_HEADER_NAME;
 				arrayAdd(req->headerValues, req->headerValue);
 				req->headerValue = NULL;
 
@@ -280,15 +347,13 @@ void process_client_request(ProxyServer *p, Request *req) {
 }
 
 int transfer_request_to_server(ProxyServer *p, Request *req) {
-	if (req->serverFd == 0) {
-		req->serverFd = connect_to_server(p, 
-			"vikingogames.com", 80);
-
-		req->serverIOFlag |= RW_STATE_READ;
+	if (req->requestState < REQ_READ_BODY) {
+		read_request_header(p, req);
+	} else {
+		return schedule_write_to_server(req);
 	}
-	process_client_request(p, req);
 
-	return schedule_write_to_server(req);
+	return 0;
 }
 
 int shutdown_channel(ProxyServer *p, Request *req) {
@@ -308,7 +373,7 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	req->headerValues->length = 0;
 	req->headerName = NULL;
 	req->headerValue = NULL;
-	req->requestParseState = REQ_PARSE_NONE;
+	req->requestState = REQ_PARSE_NONE;
 
 	return 0;
 }
@@ -420,6 +485,7 @@ int handle_server_read(ProxyServer *p, int position) {
                 return -1;
         }
 
+
 	req->serverWriteCompleted += bytesWritten;
 
 	if (req->serverWriteCompleted == req->requestBuffer->length) {
@@ -511,7 +577,7 @@ int handle_server_write(ProxyServer *p, int position) {
                 return -1;
         }
 
-	fwrite(req->responseBuffer->buffer, 1, bytesRead, stdout);
+	//fwrite(req->responseBuffer->buffer, 1, bytesRead, stdout);
 	req->responseBuffer->length = bytesRead;
 	schedule_write_to_client(req);
 
@@ -546,11 +612,9 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
                 }
 
                 if (req->serverIOFlag & RW_STATE_READ) {
-			_info("Adding server to read FD");
                         FD_SET(req->serverFd, pReadFdSet);
                 } 
 		if (req->serverIOFlag & RW_STATE_WRITE) {
-			_info("Adding server to write FD");
                         FD_SET(req->serverFd, pWriteFdSet);
                 }
         }
@@ -605,7 +669,7 @@ int server_loop(ProxyServer *p) {
                 }
                 //Make sense out of the event
                 if (FD_ISSET(p->serverSocket, &readFdSet)) {
-                        _info("Client is connecting...");
+                        _info("Client connected.");
                         int clientFd = accept(p->serverSocket, NULL, NULL);
 
                         DIE(p, clientFd, "accept() failed.");
@@ -657,6 +721,7 @@ ProxyServer* newProxyServer(int port) {
 		req->headerValues = newArray(10);
 		req->requestBuffer = newBufferWithCapacity(512);
 		req->responseBuffer = newBufferWithCapacity(1024);
+		req->requestBodyOverflowBuffer = newBufferWithCapacity(256);
 	}
 
 	return p;
@@ -675,6 +740,7 @@ void deleteProxyServer(ProxyServer *p) {
 
 		deleteBuffer(req->requestBuffer);
 		deleteBuffer(req->responseBuffer);
+		deleteBuffer(req->requestBodyOverflowBuffer);
 
 		for (int j = 0; j < req->headerNames->length; ++j) {
 			deleteString(arrayGet(req->headerNames, j));
