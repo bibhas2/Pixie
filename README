@@ -1,0 +1,28 @@
+This is my attempt to write a decent and high performance
+proxy server and not have to use Charles proxy.
+
+Building
+========
+Clone these two repos somewhere:
+
+git clone https://github.com/bibhas2/Cute.git
+git clone https://github.com/bibhas2/Pixie.git
+
+Go into the Cute folder and run:
+
+make
+
+Go into the Pixie folder and run:
+
+make
+
+Running
+=======
+There is a sample command line version of the server that you can run before
+any GUI is developed.
+
+Configure proxy setting to localhost:8080.
+
+Run pixie:
+
+./pixie
