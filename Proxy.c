@@ -74,12 +74,13 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	req->headerName = NULL;
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
+	req->connectionEstablished = 0;
 
 	return 0;
 }
 
 int connect_to_server(ProxyServer *p, const char *host, int port) {
-        _info("Connecting to %s:%d", host, port);
+        _info("Non-blocking connect to %s:%d", host, port);
 
         char port_str[128];
 
@@ -100,12 +101,17 @@ int connect_to_server(ProxyServer *p, const char *host, int port) {
 
         int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         DIE(p, sock, "Failed to open socket.");
-
-        status = connect(sock, res->ai_addr, res->ai_addrlen);
-        DIE(p, status, "Failed to connect to port.");
-
+	//Enable non-blocking I/O and connect
         status = fcntl(sock, F_SETFL, O_NONBLOCK);
         DIE(p, status, "Failed to set non blocking mode for socket.");
+	//Connect in a non-blocking manner
+        status = connect(sock, res->ai_addr, res->ai_addrlen);
+	if (status < 0 && errno != EINPROGRESS) {
+		close(sock);
+		freeaddrinfo(res);
+
+		DIE(p, status, "Failed to connect to port.");
+	}
 
         freeaddrinfo(res);
 
@@ -474,6 +480,30 @@ int handle_client_read(ProxyServer *p, int position) {
 int handle_server_read(ProxyServer *p, int position) {
 	Request *req = p->requests + position;
 
+	if (req->connectionEstablished == 0) {
+		_info("Asynch connection has completed.");
+		//Non-blocking connection is now done. See if it worked.
+		int valopt;
+		socklen_t lon = sizeof(int);
+
+		int status = getsockopt(req->serverFd, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon);
+		if (status < 0) {
+			shutdown_channel(p, req);
+			DIE(p, status, "Error in getsockopt()");
+		}
+		//Check the value of valopt
+		if (valopt) {
+			//Connection failed
+			shutdown_channel(p, req);
+			DIE(p, -1, "Failed to connect to server.");
+		}
+		//Connection was successful
+		_info("Connection was successful.");
+		req->connectionEstablished = 1;
+
+		return 0;
+	}
+
         if (!(req->serverIOFlag & RW_STATE_WRITE)) {
                 _info("We are not trying to write to the server socket.");
 
@@ -637,7 +667,8 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
                 if (req->serverIOFlag & RW_STATE_READ) {
                         FD_SET(req->serverFd, pReadFdSet);
                 } 
-		if (req->serverIOFlag & RW_STATE_WRITE) {
+		if ((req->serverIOFlag & RW_STATE_WRITE) ||
+			(req->connectionEstablished == 0)) {
                         FD_SET(req->serverFd, pWriteFdSet);
                 }
         }
@@ -657,6 +688,7 @@ int add_client_fd(ProxyServer *p, int clientFd) {
                         req->responseBuffer->length = 0;
                         req->clientWriteCompleted = 0;
                         req->serverWriteCompleted = 0;
+                        req->connectionEstablished = 0;
 
                         return i;
                 }
@@ -745,6 +777,7 @@ ProxyServer* newProxyServer(int port) {
 		req->requestBuffer = newBufferWithCapacity(512);
 		req->responseBuffer = newBufferWithCapacity(1024);
 		req->requestBodyOverflowBuffer = newBufferWithCapacity(256);
+		req->connectionEstablished = 0;
 	}
 
 	return p;

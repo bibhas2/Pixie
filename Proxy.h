@@ -19,6 +19,7 @@ typedef struct _Request {
 	int requestState;
 	int clientIOFlag;
 	int serverIOFlag;
+	int connectionEstablished;
 
 	Buffer *requestBuffer;
 	Buffer *responseBuffer;
