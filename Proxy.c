@@ -56,15 +56,11 @@ int disconnect_clients(ProxyServer *p) {
 	return 0;
 }
 
-int shutdown_channel(ProxyServer *p, Request *req) {
-	_info("Shutting down channel. Client %d server %d",
-		req->clientFd, req->serverFd);
-
-	close(req->clientFd);
-	close(req->serverFd);
-
-	req->clientFd = 0;
-	req->serverFd = 0;
+/*
+ * Initialize all request state flags to default so that
+ * the request can be reused again for another TCP connection.
+ */
+static void reset_request_state(Request *req) {
 	req->clientIOFlag = RW_STATE_NONE;
 	req->serverIOFlag = RW_STATE_NONE;
 	req->clientWriteCompleted = 0;
@@ -75,6 +71,18 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
 	req->connectionEstablished = 0;
+}
+
+int shutdown_channel(ProxyServer *p, Request *req) {
+	_info("Shutting down channel. Client %d server %d",
+		req->clientFd, req->serverFd);
+
+	close(req->clientFd);
+	close(req->serverFd);
+	req->clientFd = 0;
+	req->serverFd = 0;
+
+	reset_request_state(req);
 
 	return 0;
 }
@@ -492,6 +500,7 @@ int handle_server_read(ProxyServer *p, int position) {
 			DIE(p, status, "Error in getsockopt()");
 		}
 		//Check the value of valopt
+		_info("SOL_SOCKET: %d", valopt);
 		if (valopt) {
 			//Connection failed
 			shutdown_channel(p, req);
@@ -682,13 +691,8 @@ int add_client_fd(ProxyServer *p, int clientFd) {
 
                         req->clientFd = clientFd;
                         req->serverFd = 0;
-                        req->clientIOFlag = RW_STATE_NONE;
-                        req->serverIOFlag = RW_STATE_NONE;
-                        req->requestBuffer->length = 0;
-                        req->responseBuffer->length = 0;
-                        req->clientWriteCompleted = 0;
-                        req->serverWriteCompleted = 0;
-                        req->connectionEstablished = 0;
+
+			reset_request_state(req);
 
                         return i;
                 }
@@ -711,7 +715,7 @@ int server_loop(ProxyServer *p) {
         while (1) {
                 populate_fd_set(p, &readFdSet, &writeFdSet);
 
-                timeout.tv_sec = 60 * 5;
+                timeout.tv_sec = 60 * 1;
                 timeout.tv_usec = 0;
 
                 int numEvents = select(FD_SETSIZE, &readFdSet, &writeFdSet, NULL, &timeout);
@@ -777,7 +781,8 @@ ProxyServer* newProxyServer(int port) {
 		req->requestBuffer = newBufferWithCapacity(512);
 		req->responseBuffer = newBufferWithCapacity(1024);
 		req->requestBodyOverflowBuffer = newBufferWithCapacity(256);
-		req->connectionEstablished = 0;
+
+		reset_request_state(req);
 	}
 
 	return p;
