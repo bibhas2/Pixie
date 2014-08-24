@@ -25,6 +25,7 @@
 #define REQ_PARSE_HEADER_VALUE 3
 #define REQ_READ_BODY 4
 #define REQ_READ_RESPONSE 5
+#define REQ_TUNNEL_MODE 6
 
 static int bTrace = 0;
 
@@ -57,14 +58,23 @@ int disconnect_clients(ProxyServer *p) {
 }
 
 /*
- * Initialize all request state flags to default so that
- * the request can be reused again for another TCP connection.
+ * Initialize all request state data to default so that
+ * the request object can be reused again for another TCP connection.
  */
 static void reset_request_state(Request *req) {
+	req->clientFd = 0;
+	req->serverFd = 0;
+
 	req->clientIOFlag = RW_STATE_NONE;
 	req->serverIOFlag = RW_STATE_NONE;
 	req->clientWriteCompleted = 0;
 	req->serverWriteCompleted = 0;
+	req->protocolLine->length = 0;
+	req->protocol->length = 0;
+	req->method->length = 0;
+	req->host->length = 0;
+	req->port->length = 0;
+	req->path->length = 0;
 	req->headerNames->length = 0;
 	req->headerValues->length = 0;
 	req->headerName = NULL;
@@ -79,8 +89,6 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 
 	close(req->clientFd);
 	close(req->serverFd);
-	req->clientFd = 0;
-	req->serverFd = 0;
 
 	reset_request_state(req);
 
@@ -258,6 +266,13 @@ void output_headers(ProxyServer *p, Request *req) {
 			stringAsCString(name),
 			stringAsCString(value));
 	}
+
+	//Determine if we need to do CONNECT tunneling
+	if (strcmp(stringAsCString(req->method),
+		"CONNECT") == 0) {
+		req->requestState = REQ_TUNNEL_MODE;
+	}
+
 	//If we have already read a bit of body save it in overflow buffer
 	req->requestBodyOverflowBuffer->length = 0;
 	if (req->requestBuffer->position < req->requestBuffer->length) {
@@ -301,11 +316,13 @@ void output_headers(ProxyServer *p, Request *req) {
 
 	if (req->serverFd == 0) {
 		int port = -1;
+		int isHTTPS = strcmp("https", 
+			stringAsCString(req->protocol)) == 0;
 
 		sscanf(stringAsCString(req->port),
 			"%d", &port);
 		if (port == -1) {
-			port = 80;
+			port = isHTTPS ? 443 : 80;
 		}
 
 		req->serverFd = connect_to_server( 
@@ -320,9 +337,23 @@ void output_headers(ProxyServer *p, Request *req) {
 		//Enable read from server
 		req->serverIOFlag |= RW_STATE_READ;
 	}
-	schedule_write_to_server(req);
+	if (req->requestState != REQ_TUNNEL_MODE) {
+		schedule_write_to_server(req);
+	} else {
+		//Return HTTP/1.0 200 Connection established to client.
+		const char *response = 
+			"HTTP/1.0 200 Connection established\r\n\r\n";
+		req->responseBuffer->length = 0;
+		bufferAppendBytes(req->responseBuffer,
+			response, strlen(response));
+		schedule_write_to_client(req);
+	}
 }
 
+/**
+ * This method accumulates request header information by 
+ * parsing client request buffer.
+ */
 void read_request_header(ProxyServer *p, Request *req) {
 	if (req->requestState == REQ_STATE_NONE) {
 		req->protocolLine->length = 0;
@@ -399,6 +430,12 @@ void read_request_header(ProxyServer *p, Request *req) {
 	}
 }
 
+/*
+ * This function is called after any data is read from the client.
+ * This function either parses the data as request header or
+ * send the data as is to server if header is already parsed or
+ * if the request is in CONNECT tunnel mode.
+ */
 int transfer_request_to_server(ProxyServer *p, Request *req) {
 	if (req->requestState == REQ_READ_RESPONSE) {
 		_info("A new request using an old connection.");
@@ -408,6 +445,10 @@ int transfer_request_to_server(ProxyServer *p, Request *req) {
 	if (req->requestState < REQ_READ_BODY) {
 		read_request_header(p, req);
 	} else {
+		/*
+ 		 * Transfer request data as is if header is already parsed
+		 * or if we are in tunnel mode.
+		 */
 		return schedule_write_to_server(req);
 	}
 
@@ -689,10 +730,9 @@ int add_client_fd(ProxyServer *p, int clientFd) {
                         //We have a free slot
                         Request *req = p->requests + i;
 
-                        req->clientFd = clientFd;
-                        req->serverFd = 0;
-
 			reset_request_state(req);
+
+                        req->clientFd = clientFd;
 
                         return i;
                 }
