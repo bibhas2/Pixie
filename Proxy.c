@@ -25,7 +25,7 @@
 #define REQ_PARSE_HEADER_VALUE 3
 #define REQ_READ_BODY 4
 #define REQ_READ_RESPONSE 5
-#define REQ_TUNNEL_MODE 6
+#define REQ_CONNECT_TUNNEL_MODE 6
 
 static int bTrace = 0;
 
@@ -204,6 +204,14 @@ void output_headers(ProxyServer *p, Request *req) {
 		if (state == PROT_METHOD) {
 			if (ch == ' ') {
 				state = PROT_PROTOCOL;
+				//Determine if we need to do CONNECT tunneling
+				if (strcmp(stringAsCString(req->method),
+					"CONNECT") == 0) {
+					req->requestState = REQ_CONNECT_TUNNEL_MODE;
+					//In CONNECT request, protocol is not mentioned in URL
+					//We go straight to host. Ex: example.com:80.
+					state = PROT_HOST;
+				}
 				continue;
 			}
 			stringAppendChar(req->method, ch);
@@ -267,11 +275,6 @@ void output_headers(ProxyServer *p, Request *req) {
 			stringAsCString(value));
 	}
 
-	//Determine if we need to do CONNECT tunneling
-	if (strcmp(stringAsCString(req->method),
-		"CONNECT") == 0) {
-		req->requestState = REQ_TUNNEL_MODE;
-	}
 
 	//If we have already read a bit of body save it in overflow buffer
 	req->requestBodyOverflowBuffer->length = 0;
@@ -337,7 +340,7 @@ void output_headers(ProxyServer *p, Request *req) {
 		//Enable read from server
 		req->serverIOFlag |= RW_STATE_READ;
 	}
-	if (req->requestState != REQ_TUNNEL_MODE) {
+	if (req->requestState != REQ_CONNECT_TUNNEL_MODE) {
 		schedule_write_to_server(req);
 	} else {
 		//Return HTTP/1.0 200 Connection established to client.
@@ -680,7 +683,13 @@ int handle_server_write(ProxyServer *p, int position) {
         }
 
 	//fwrite(req->responseBuffer->buffer, 1, bytesRead, stdout);
-	req->requestState = REQ_READ_RESPONSE;
+	/*
+ 	 * In tunnel mode we stay in that model until connection is severed. Else,
+ 	 * we move forward to REQ_READ_RESPONSE mode.
+ 	 */
+	if (req->requestState != REQ_CONNECT_TUNNEL_MODE) {
+		req->requestState = REQ_READ_RESPONSE;
+	}
 	req->responseBuffer->length = bytesRead;
 	schedule_write_to_client(req);
 
