@@ -7,8 +7,10 @@ all: pixie
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
-pixie: $(OBJS) 
-	gcc -o pixie $(OBJS) -L../Cute -L. -lcute 
+libpixie.a: $(OBJS) 
+	ar rcs libpixie.a $(OBJS)
+pixie: $(HEADERS) libpixie.a
+	gcc -o pixie -L../Cute -L. -lpixie -lcute 
 clean:
 	rm $(OBJS)
-	rm pixie
+	rm -f pixie libpixie.a
