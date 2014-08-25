@@ -83,6 +83,23 @@ static void reset_request_state(Request *req) {
 	req->connectionEstablished = 0;
 }
 
+static void on_begin_request(ProxyServer *p, Request *req) {
+	if (p->onBeginRequest != NULL) {
+		p->onBeginRequest(p, req);
+	}
+}
+
+static void on_end_request(ProxyServer *p, Request *req) {
+	/*
+ 	 * At times browser opens connections to proxy server that are never used
+	 * to sned request. If that happened then don't call onEndRequest when channel
+	 * is disconnected.
+	 */
+	if (p->onEndRequest != NULL && req->requestState != REQ_STATE_NONE) {
+		p->onEndRequest(p, req);
+	}
+}
+
 int shutdown_channel(ProxyServer *p, Request *req) {
 	_info("Shutting down channel. Client %d server %d",
 		req->clientFd, req->serverFd);
@@ -90,13 +107,19 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	close(req->clientFd);
 	close(req->serverFd);
 
+	/*
+ 	 * Mark the request as ended. This may be a successful end
+ 	 * or an end due to some kind of error in the network, client or server.
+ 	 */
+	on_end_request(p, req);
+
 	reset_request_state(req);
 
 	return 0;
 }
 
-int connect_to_server(ProxyServer *p, const char *host, int port) {
-        _info("Non-blocking connect to %s:%d", host, port);
+int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) {
+        _info("Non-blocking connect to %s:%d for client %d", host, port, req->clientFd);
 
         char port_str[128];
 
@@ -259,6 +282,7 @@ void output_headers(ProxyServer *p, Request *req) {
 		}
 	}
 
+/*
 	_info("Protcol line [%s]\n", stringAsCString(req->protocolLine));
 	_info("Method [%s]\n", stringAsCString(req->method));
 	_info("Protocol [%s]\n", stringAsCString(req->protocol));
@@ -274,6 +298,7 @@ void output_headers(ProxyServer *p, Request *req) {
 			stringAsCString(name),
 			stringAsCString(value));
 	}
+*/
 
 
 	//If we have already read a bit of body save it in overflow buffer
@@ -329,7 +354,7 @@ void output_headers(ProxyServer *p, Request *req) {
 		}
 
 		req->serverFd = connect_to_server( 
-			p, stringAsCString(req->host), port);
+			p, req, stringAsCString(req->host), port);
 
 		if (req->serverFd < 0) {
 			_info("Failed to connect to server. Disconnecting.");
@@ -442,7 +467,14 @@ void read_request_header(ProxyServer *p, Request *req) {
 int transfer_request_to_server(ProxyServer *p, Request *req) {
 	if (req->requestState == REQ_READ_RESPONSE) {
 		_info("A new request using an old connection.");
+		//Mark the old request as has ended.
+		on_end_request(p, req);
+
 		req->requestState = REQ_STATE_NONE;
+	}
+	if (req->requestState == REQ_STATE_NONE) {
+		//We starting a brand new request.
+		on_begin_request(p, req);
 	}
 
 	if (req->requestState < REQ_READ_BODY) {
@@ -498,7 +530,8 @@ int handle_client_read(ProxyServer *p, int position) {
                 buffer_start,
                 req->responseBuffer->length - req->clientWriteCompleted);
 
-        _info("Written to client %d of %d bytes", bytesWritten, req->responseBuffer->length);
+        _info("Written to client (%d) %d of %d bytes", req->clientFd, 
+		bytesWritten, req->responseBuffer->length);
 
         if (bytesWritten < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -533,7 +566,8 @@ int handle_server_read(ProxyServer *p, int position) {
 	Request *req = p->requests + position;
 
 	if (req->connectionEstablished == 0) {
-		_info("Asynch connection has completed.");
+		_info("Asynch connection has completed. Client %d server %d.",
+			req->clientFd, req->serverFd);
 		//Non-blocking connection is now done. See if it worked.
 		int valopt;
 		socklen_t lon = sizeof(int);
@@ -573,7 +607,8 @@ int handle_server_read(ProxyServer *p, int position) {
                 buffer_start,
                 req->requestBuffer->length - req->serverWriteCompleted);
 
-        _info("Written to server %d of %d bytes", bytesWritten, 
+        _info("Written to server (%d) %d of %d bytes", 
+		req->serverFd, bytesWritten, 
 		req->requestBuffer->length);
 
         if (bytesWritten < 0) {
@@ -581,7 +616,7 @@ int handle_server_read(ProxyServer *p, int position) {
                         return -1;
                 }
                 //Read will block. Not an error.
-                _info("Read block detected.");
+                _info("Write block detected.");
 
                 return 0;
         }
@@ -621,7 +656,8 @@ int handle_client_write(ProxyServer *p, int position) {
                 req->requestBuffer->buffer,
                 req->requestBuffer->capacity);
 
-        _info("Read request from client %d bytes", bytesRead);
+        _info("Read request from client (%d) %d bytes", 
+		req->clientFd, bytesRead);
 
         if (bytesRead < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -638,7 +674,7 @@ int handle_client_write(ProxyServer *p, int position) {
                 return -1;
         }
 
-	fwrite(req->requestBuffer->buffer, 1, bytesRead, stdout);
+	//fwrite(req->requestBuffer->buffer, 1, bytesRead, stdout);
 	req->requestBuffer->length = bytesRead;
 	transfer_request_to_server(p, req);
 
@@ -665,7 +701,8 @@ int handle_server_write(ProxyServer *p, int position) {
                 req->responseBuffer->buffer,
                 req->responseBuffer->capacity);
 
-        _info("Read response from server %d bytes", bytesRead);
+        _info("Read response from server (%d) %d bytes", 
+		req->serverFd, bytesRead);
 
         if (bytesRead < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -753,6 +790,8 @@ int add_client_fd(ProxyServer *p, int clientFd) {
 int handle_client_connect(ProxyServer *p, Request *req) {
 	//Start reading from client
 	req->clientIOFlag = RW_STATE_READ;
+
+	_info("Client connected: %d\n", req->clientFd);
 
 	return 0;
 }

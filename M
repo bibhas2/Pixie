@@ -1,0 +1,732 @@
+INFO: Proxy server binding to port: 8080
+INFO: Calling listen.
+INFO: listen returned.
+INFO: Client connected.
+INFO: Client connected: 4
+
+INFO: Read request from client (4) 512 bytes
+*** Request is starting. client: 4 server: 0
+INFO: Read request from client (4) 81 bytes
+INFO: Non-blocking connect to csi.gstatic.com:80 for client 4
+INFO: Resolving name...
+INFO: Scheduling write to server: 5
+INFO: Client connected.
+INFO: Client connected: 6
+
+INFO: Client connected.
+INFO: Client connected: 7
+
+INFO: Client connected.
+INFO: Client connected: 8
+
+INFO: Client connected.
+INFO: Client connected: 9
+
+INFO: Client connected.
+INFO: Client connected: 10
+
+INFO: Client connected.
+INFO: Client connected: 11
+
+INFO: Client connected.
+INFO: Client connected: 12
+
+INFO: Client connected.
+INFO: Client connected: 13
+
+INFO: Client connected.
+INFO: Client connected: 14
+
+INFO: Client connected.
+INFO: Client connected: 15
+
+INFO: Read request from client (6) 512 bytes
+*** Request is starting. client: 6 server: 0
+INFO: Read request from client (6) 282 bytes
+INFO: Non-blocking connect to lisarichards3d.blogspot.com:80 for client 6
+INFO: Resolving name...
+INFO: Scheduling write to server: 16
+INFO: Asynch connection has completed. Client 4 server 5.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (5) 571 of 571 bytes
+INFO: Asynch connection has completed. Client 6 server 16.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (16) 760 of 760 bytes
+INFO: Read response from server (16) 369 bytes
+INFO: Scheduling write to client: 6
+INFO: Written to client (6) 369 of 369 bytes
+INFO: Read response from server (5) 323 bytes
+INFO: Scheduling write to client: 4
+INFO: Written to client (4) 323 of 323 bytes
+INFO: Client connected.
+INFO: Client connected: 17
+
+INFO: Read request from client (17) 463 bytes
+*** Request is starting. client: 17 server: 0
+INFO: Non-blocking connect to img1.blogblog.com:80 for client 17
+INFO: Resolving name...
+INFO: Scheduling write to server: 18
+INFO: Client connected.
+INFO: Client connected: 19
+
+INFO: Client connected.
+INFO: Client connected: 20
+
+INFO: Client connected.
+INFO: Client connected: 21
+
+INFO: Client connected.
+INFO: Client connected: 22
+
+INFO: Client connected.
+INFO: Client connected: 23
+
+INFO: Client connected.
+INFO: Client connected: 24
+
+INFO: Client connected.
+INFO: Client connected: 25
+
+INFO: Client connected.
+INFO: Client connected: 26
+
+INFO: Client connected.
+INFO: Client connected: 27
+
+INFO: Read request from client (19) 503 bytes
+*** Request is starting. client: 19 server: 0
+INFO: Non-blocking connect to 1.bp.blogspot.com:80 for client 19
+INFO: Resolving name...
+INFO: Scheduling write to server: 28
+INFO: Read request from client (20) 461 bytes
+*** Request is starting. client: 20 server: 0
+INFO: Non-blocking connect to img2.blogblog.com:80 for client 20
+INFO: Resolving name...
+INFO: Scheduling write to server: 29
+INFO: Read request from client (21) 483 bytes
+*** Request is starting. client: 21 server: 0
+INFO: Non-blocking connect to 1.bp.blogspot.com:80 for client 21
+INFO: Resolving name...
+INFO: Scheduling write to server: 30
+INFO: Read request from client (22) 483 bytes
+*** Request is starting. client: 22 server: 0
+INFO: Non-blocking connect to 4.bp.blogspot.com:80 for client 22
+INFO: Resolving name...
+INFO: Scheduling write to server: 31
+INFO: Read request from client (23) 474 bytes
+*** Request is starting. client: 23 server: 0
+INFO: Non-blocking connect to 2.bp.blogspot.com:80 for client 23
+INFO: Resolving name...
+INFO: Scheduling write to server: 32
+INFO: Read request from client (24) 472 bytes
+*** Request is starting. client: 24 server: 0
+INFO: Non-blocking connect to 1.bp.blogspot.com:80 for client 24
+INFO: Resolving name...
+INFO: Scheduling write to server: 33
+INFO: Read request from client (25) 474 bytes
+*** Request is starting. client: 25 server: 0
+INFO: Non-blocking connect to 3.bp.blogspot.com:80 for client 25
+INFO: Resolving name...
+INFO: Scheduling write to server: 34
+INFO: Read request from client (26) 479 bytes
+*** Request is starting. client: 26 server: 0
+INFO: Non-blocking connect to 2.bp.blogspot.com:80 for client 26
+INFO: Resolving name...
+INFO: Scheduling write to server: 35
+INFO: Read request from client (27) 502 bytes
+*** Request is starting. client: 27 server: 0
+INFO: Non-blocking connect to 3.bp.blogspot.com:80 for client 27
+INFO: Resolving name...
+INFO: Scheduling write to server: 36
+INFO: Client connected.
+INFO: Client connected: 37
+
+INFO: Client connected.
+INFO: Client connected: 38
+
+INFO: Client connected.
+INFO: Client connected: 39
+
+INFO: Client connected.
+INFO: Client connected: 40
+
+INFO: Client connected.
+INFO: Client connected: 41
+
+INFO: Client connected.
+INFO: Client connected: 42
+
+INFO: Asynch connection has completed. Client 17 server 18.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 19 server 28.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 20 server 29.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 21 server 30.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 22 server 31.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 23 server 32.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 24 server 33.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 25 server 34.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 26 server 35.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Read request from client (37) 508 bytes
+*** Request is starting. client: 37 server: 0
+INFO: Non-blocking connect to pagead2.googlesyndication.com:80 for client 37
+INFO: Resolving name...
+INFO: Scheduling write to server: 43
+INFO: Read request from client (38) 437 bytes
+*** Request is starting. client: 38 server: 0
+INFO: Non-blocking connect to connect.facebook.net:80 for client 38
+INFO: Resolving name...
+INFO: Scheduling write to server: 44
+INFO: Read request from client (39) 512 bytes
+*** Request is starting. client: 39 server: 0
+INFO: Read request from client (41) 512 bytes
+*** Request is starting. client: 41 server: 0
+INFO: Read request from client (42) 512 bytes
+*** Request is starting. client: 42 server: 0
+INFO: Written to server (18) 439 of 439 bytes
+INFO: Written to server (28) 479 of 479 bytes
+INFO: Written to server (29) 437 of 437 bytes
+INFO: Written to server (30) 459 of 459 bytes
+INFO: Written to server (31) 459 of 459 bytes
+INFO: Written to server (32) 450 of 450 bytes
+INFO: Written to server (33) 448 of 448 bytes
+INFO: Written to server (34) 450 of 450 bytes
+INFO: Written to server (35) 455 of 455 bytes
+INFO: Asynch connection has completed. Client 27 server 36.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 37 server 43.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Read request from client (39) 66 bytes
+INFO: Non-blocking connect to www.youtube.com:80 for client 39
+INFO: Resolving name...
+INFO: Scheduling write to server: 45
+INFO: Read request from client (41) 147 bytes
+INFO: Non-blocking connect to platform.twitter.com:80 for client 41
+INFO: Resolving name...
+INFO: Scheduling write to server: 46
+INFO: Read request from client (42) 279 bytes
+INFO: Non-blocking connect to www.google.com:80 for client 42
+INFO: Resolving name...
+INFO: Scheduling write to server: 47
+INFO: Client connected.
+INFO: Client connected: 48
+
+INFO: Read response from server (18) 165 bytes
+INFO: Scheduling write to client: 17
+INFO: Read response from server (28) 175 bytes
+INFO: Scheduling write to client: 19
+INFO: Read response from server (29) 165 bytes
+INFO: Scheduling write to client: 20
+INFO: Read response from server (30) 175 bytes
+INFO: Scheduling write to client: 21
+INFO: Read response from server (31) 175 bytes
+INFO: Scheduling write to client: 22
+INFO: Read response from server (32) 175 bytes
+INFO: Scheduling write to client: 23
+INFO: Read response from server (33) 175 bytes
+INFO: Scheduling write to client: 24
+INFO: Read response from server (34) 175 bytes
+INFO: Scheduling write to client: 25
+INFO: Read response from server (35) 175 bytes
+INFO: Scheduling write to client: 26
+INFO: Written to server (36) 478 of 478 bytes
+INFO: Written to server (43) 472 of 472 bytes
+INFO: Asynch connection has completed. Client 38 server 44.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 39 server 45.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 41 server 46.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Read request from client (48) 402 bytes
+*** Request is starting. client: 48 server: 0
+INFO: Non-blocking connect to youtube.googleapis.com:80 for client 48
+INFO: Resolving name...
+INFO: Scheduling write to server: 49
+INFO: Written to client (17) 165 of 165 bytes
+INFO: Written to client (19) 175 of 175 bytes
+INFO: Written to client (20) 165 of 165 bytes
+INFO: Written to client (21) 175 of 175 bytes
+INFO: Written to client (22) 175 of 175 bytes
+INFO: Written to client (23) 175 of 175 bytes
+INFO: Written to client (24) 175 of 175 bytes
+INFO: Written to client (25) 175 of 175 bytes
+INFO: Written to client (26) 175 of 175 bytes
+INFO: Written to server (44) 410 of 410 bytes
+INFO: Written to server (45) 556 of 556 bytes
+INFO: Written to server (46) 632 of 632 bytes
+INFO: Asynch connection has completed. Client 42 server 47.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (47) 770 of 770 bytes
+INFO: Asynch connection has completed. Client 48 server 49.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (49) 373 of 373 bytes
+INFO: Client connected.
+INFO: Client connected: 50
+
+INFO: Read request from client (10) 472 bytes
+*** Request is starting. client: 10 server: 0
+INFO: Non-blocking connect to www.blogblog.com:80 for client 10
+INFO: Resolving name...
+INFO: Scheduling write to server: 51
+INFO: Read request from client (11) 470 bytes
+*** Request is starting. client: 11 server: 0
+INFO: Non-blocking connect to www.blogblog.com:80 for client 11
+INFO: Resolving name...
+INFO: Scheduling write to server: 52
+INFO: Read response from server (36) 175 bytes
+INFO: Scheduling write to client: 27
+INFO: Read response from server (43) 190 bytes
+INFO: Scheduling write to client: 37
+INFO: Read request from client (50) 446 bytes
+*** Request is starting. client: 50 server: 0
+INFO: Non-blocking connect to www.blogger.com:80 for client 50
+INFO: Resolving name...
+INFO: Scheduling write to server: 53
+INFO: Asynch connection has completed. Client 10 server 51.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Asynch connection has completed. Client 11 server 52.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to client (27) 175 of 175 bytes
+INFO: Written to client (37) 190 of 190 bytes
+INFO: Read response from server (44) 267 bytes
+INFO: Scheduling write to client: 38
+INFO: Read response from server (45) 431 bytes
+INFO: Scheduling write to client: 39
+INFO: Read response from server (49) 466 bytes
+INFO: Scheduling write to client: 48
+INFO: Written to server (51) 449 of 449 bytes
+INFO: Written to server (52) 447 of 447 bytes
+INFO: Written to client (38) 267 of 267 bytes
+INFO: Read response from server (44) 0 bytes
+INFO: Shutting down channel. Client 38 server 44
+*** Request has finished. client: 38 server: 44 Host: connect.facebook.net
+INFO: Written to client (39) 431 of 431 bytes
+INFO: Written to client (48) 466 of 466 bytes
+INFO: Asynch connection has completed. Client 50 server 53.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (53) 424 of 424 bytes
+INFO: Read response from server (46) 580 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 580 of 580 bytes
+INFO: Client connected.
+INFO: Client connected: 38
+
+INFO: Read request from client (38) 512 bytes
+*** Request is starting. client: 38 server: 0
+INFO: Read request from client (38) 211 bytes
+INFO: Non-blocking connect to googleads.g.doubleclick.net:80 for client 38
+INFO: Resolving name...
+INFO: Scheduling write to server: 44
+INFO: Read response from server (51) 165 bytes
+INFO: Scheduling write to client: 10
+INFO: Read response from server (52) 165 bytes
+INFO: Scheduling write to client: 11
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Read response from server (53) 165 bytes
+INFO: Scheduling write to client: 50
+INFO: Written to client (10) 165 of 165 bytes
+INFO: Written to client (11) 165 of 165 bytes
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (50) 165 of 165 bytes
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 63 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 63 of 63 bytes
+INFO: Asynch connection has completed. Client 38 server 44.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (44) 689 of 689 bytes
+INFO: Read response from server (44) 226 bytes
+INFO: Scheduling write to client: 38
+INFO: Written to client (38) 226 of 226 bytes
+INFO: Read response from server (47) 421 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 421 of 421 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 1024 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 1024 of 1024 bytes
+INFO: Read response from server (47) 890 bytes
+INFO: Scheduling write to client: 42
+INFO: Written to client (42) 890 of 890 bytes
+INFO: Read request from client (13) 437 bytes
+*** Request is starting. client: 13 server: 0
+INFO: Non-blocking connect to www.google-analytics.com:80 for client 13
+INFO: Resolving name...
+INFO: Scheduling write to server: 54
+INFO: Asynch connection has completed. Client 13 server 54.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (54) 406 of 406 bytes
+INFO: Read response from server (54) 163 bytes
+INFO: Scheduling write to client: 13
+INFO: Written to client (13) 163 of 163 bytes
+INFO: Read request from client (41) 757 bytes
+INFO: A new request using an old connection.
+*** Request has finished. client: 41 server: 46 Host: platform.twitter.com
+*** Request is starting. client: 41 server: 46
+INFO: Scheduling write to server: 46
+INFO: Written to server (46) 730 of 730 bytes
+INFO: Read response from server (46) 577 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 577 of 577 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 1024 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 1024 of 1024 bytes
+INFO: Read response from server (46) 263 bytes
+INFO: Scheduling write to client: 41
+INFO: Written to client (41) 263 of 263 bytes
+INFO: Read request from client (13) 512 bytes
+INFO: A new request using an old connection.
+*** Request has finished. client: 13 server: 54 Host: www.google-analytics.com
+*** Request is starting. client: 13 server: 54
+INFO: Read request from client (13) 418 bytes
+INFO: Scheduling write to server: 54
+INFO: Written to server (54) 899 of 899 bytes
+INFO: Read response from server (54) 404 bytes
+INFO: Scheduling write to client: 13
+INFO: Written to client (13) 404 of 404 bytes
+INFO: Read request from client (7) 512 bytes
+*** Request is starting. client: 7 server: 0
+INFO: Read request from client (7) 20 bytes
+INFO: Non-blocking connect to static.ak.facebook.com:80 for client 7
+INFO: Resolving name...
+INFO: Scheduling write to server: 55
+INFO: Asynch connection has completed. Client 7 server 55.
+INFO: SOL_SOCKET: 0
+INFO: Connection was successful.
+INFO: Written to server (55) 503 of 503 bytes
+INFO: Read response from server (55) 421 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 421 of 421 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 1024 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 1024 of 1024 bytes
+INFO: Read response from server (55) 378 bytes
+INFO: Scheduling write to client: 7
+INFO: Written to client (7) 378 of 378 bytes
+INFO: Read response from server (55) 0 bytes
+INFO: Shutting down channel. Client 7 server 55
+*** Request has finished. client: 7 server: 55 Host: static.ak.facebook.com
+INFO: Read request from client (8) 0 bytes
+INFO: Shutting down channel. Client 8 server 0
+*** Request has finished. client: 8 server: 0 Host: 
+Request buffer size: 0
+INFO: Read request from client (9) 0 bytes
+INFO: Shutting down channel. Client 9 server 0
+*** Request has finished. client: 9 server: 0 Host: 
+Request buffer size: 0
+INFO: Read request from client (12) 0 bytes
+INFO: Shutting down channel. Client 12 server 0
+*** Request has finished. client: 12 server: 0 Host: 
+Request buffer size: 0
+INFO: Read request from client (14) 0 bytes
+INFO: Shutting down channel. Client 14 server 0
+*** Request has finished. client: 14 server: 0 Host: 
+Request buffer size: 0
+INFO: Read request from client (15) 0 bytes
+INFO: Shutting down channel. Client 15 server 0
+*** Request has finished. client: 15 server: 0 Host: 
+Request buffer size: 0
+INFO: Read request from client (40) 0 bytes
+INFO: Shutting down channel. Client 40 server 0
+*** Request has finished. client: 40 server: 0 Host: 
+Request buffer size: 0
+INFO: select() timed out.

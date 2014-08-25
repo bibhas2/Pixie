@@ -34,6 +34,8 @@ typedef struct _ProxyServer {
 	int port;
 	int serverSocket;
 	void (*onError)(const char* message);
+	void (*onBeginRequest)(struct _ProxyServer *p, Request *req);
+	void (*onEndRequest)(struct _ProxyServer *p, Request *req);
 } ProxyServer;
 
 ProxyServer* newProxyServer(int port);
