@@ -23,8 +23,8 @@ typedef struct _Request {
 
 	Buffer *requestBuffer;
 	Buffer *responseBuffer;
-	int clientWriteCompleted;
-	int serverWriteCompleted;
+	size_t clientWriteCompleted;
+	size_t serverWriteCompleted;
 } Request;
 
 #define MAX_CLIENTS 256
