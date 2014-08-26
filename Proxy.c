@@ -1020,10 +1020,12 @@ int proxyServerStop(ProxyServer *p) {
 static void * _bgStartHelper(void *p) {
 	proxyServerStart((ProxyServer*) p);
 
+	_info("Background thread exiting.");
 	return NULL;
 }
 
 int proxyServerStartInBackground(ProxyServer* server) {
+	_info("Creating background thread to run the server.");
 	pthread_t t;
 	int status = pthread_create(&t, NULL, _bgStartHelper, server);
 
