@@ -37,6 +37,10 @@ typedef struct _ProxyServer {
 	int port;
 	int serverSocket;
 
+	//Server control mechanism
+	int controlPipe[2];
+	int continueOperation;
+
 	//Various event notification callbacks
 	void (*onError)(const char* message);
 	void (*onBeginRequest)(struct _ProxyServer *p, Request *req);
@@ -47,5 +51,7 @@ typedef struct _ProxyServer {
 
 ProxyServer* newProxyServer(int port);
 int proxyServerStart(ProxyServer* server);
+int proxyServerStartInBackground(ProxyServer* server);
+int proxyServerStop(ProxyServer* server);
 void deleteProxyServer(ProxyServer* server);
 void proxySetTrace(int t);

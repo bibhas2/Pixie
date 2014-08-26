@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include "Proxy.h"
 
 static void print_request_start(ProxyServer *p, Request *req) {
@@ -29,7 +30,21 @@ int main(int argc, char **argv) {
 	p->onBeginRequest = print_request_start;
 	p->onEndRequest = print_request_end;
 
-	proxyServerStart(p);
+	proxyServerStartInBackground(p);
+	
+	char buff[128];
+	while (1) {
+		printf("Enter quit to stop server.\n");
+		fgets(buff, sizeof(buff), stdin);
+
+		if (strncmp(buff, "quit", 4) == 0) {
+			printf("Stopping server...\n");
+			proxyServerStop(p);
+			puts("Hit enter to continue.");
+			getchar();
+			break;
+		}
+	}
 
 	deleteProxyServer(p);
 }

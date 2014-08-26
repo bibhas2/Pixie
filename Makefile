@@ -10,7 +10,7 @@ all: pixie
 libpixie.a: $(OBJS) 
 	ar rcs libpixie.a $(OBJS)
 pixie: $(HEADERS) libpixie.a
-	gcc -o pixie -L../Cute -L. -lpixie -lcute 
+	gcc -o pixie -L../Cute -L. -lpixie -lcute -lpthread
 clean:
 	rm $(OBJS)
 	rm -f pixie libpixie.a

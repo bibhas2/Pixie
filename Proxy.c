@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include "Proxy.h"
 
@@ -27,6 +28,9 @@
 #define REQ_READ_BODY 4
 #define REQ_READ_RESPONSE 5
 #define REQ_CONNECT_TUNNEL_MODE 6
+
+#define CMD_NONE 0
+#define CMD_STOP 1
 
 static int bTrace = 0;
 
@@ -767,6 +771,7 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 
         //Set the server socket
         FD_SET(p->serverSocket, pReadFdSet);
+        FD_SET(p->controlPipe[0], pReadFdSet);
 
         //Set the clients
         for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -823,11 +828,26 @@ int handle_client_connect(ProxyServer *p, Request *req) {
 	return 0;
 }
 
+int handle_control_command(ProxyServer *p) {
+	char buff[5];
+
+	int sz = read(p->controlPipe[0], buff, sizeof(buff));
+	DIE(p, sz, "Failed to read control command.");
+
+	_info("Received control command: %.*s", sz, buff);
+	if (strncmp(buff, "Q", 1) == 0) {
+		_info("Received stop control command.");
+		p->continueOperation = 0;
+	}
+}
+
 int server_loop(ProxyServer *p) {
         fd_set readFdSet, writeFdSet;
         struct timeval timeout;
 
-        while (1) {
+	p->continueOperation = 1;
+
+        while (p->continueOperation == 1) {
                 populate_fd_set(p, &readFdSet, &writeFdSet);
 
                 timeout.tv_sec = 60 * 1;
@@ -837,9 +857,9 @@ int server_loop(ProxyServer *p) {
                 DIE(p, numEvents, "select() failed.");
 
                 if (numEvents == 0) {
-                        _info("select() timed out.");
+                        _info("select() timed out. Looping back.");
 
-                        break;
+                        continue;
                 }
                 //Make sense out of the event
                 if (FD_ISSET(p->serverSocket, &readFdSet)) {
@@ -854,7 +874,9 @@ int server_loop(ProxyServer *p) {
                         DIE(p, status, 
 				"Failed to set non blocking mode for client socket.");
 			handle_client_connect(p, p->requests + position);
-                } else {
+                } else if (FD_ISSET(p->controlPipe[0], &readFdSet)) {
+			handle_control_command(p);
+		} else {
 			for (int i = 0; i < MAX_CLIENTS; ++i) {
 				if (FD_ISSET(p->requests[i].clientFd, &readFdSet)) {
 					handle_client_write(p, i);
@@ -871,6 +893,7 @@ int server_loop(ProxyServer *p) {
 			}
 		}
 	}
+	_info("Server shutting down.");
 	disconnect_clients(p);
 
 	return 0;
@@ -938,6 +961,10 @@ void deleteProxyServer(ProxyServer *p) {
 int proxyServerStart(ProxyServer* p) {
         int status;
 
+	//Create the server control pipes
+	status = pipe(p->controlPipe);
+	DIE(p, status, "Failed to create server control pipe.");
+
         int sock = socket(PF_INET, SOCK_STREAM, 0);
 
         DIE(p, sock, "Failed to open socket.");
@@ -972,7 +999,33 @@ int proxyServerStart(ProxyServer* p) {
 
         close(sock);
 
+        p->serverSocket = 0;
+
+	close(p->controlPipe[0]);
+	close(p->controlPipe[1]);
+
 	return 0;
 }
 
+int send_control_command(ProxyServer *p, const char *cmd, int len) {
+	int sz = write(p->controlPipe[1], cmd, len);
 
+	DIE(p, sz, "Failed to write cotrol command.");
+}
+
+int proxyServerStop(ProxyServer *p) {
+	send_control_command(p, "Q", 1);
+}
+
+static void * _bgStartHelper(void *p) {
+	proxyServerStart((ProxyServer*) p);
+
+	return NULL;
+}
+
+int proxyServerStartInBackground(ProxyServer* server) {
+	pthread_t t;
+	int status = pthread_create(&t, NULL, _bgStartHelper, server);
+
+	DIE(server, status, "Failed to create background thread.");
+}
