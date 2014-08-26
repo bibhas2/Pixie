@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <assert.h>
 
 #include "Proxy.h"
 
@@ -69,6 +70,7 @@ static void reset_request_state(Request *req) {
 	req->serverIOFlag = RW_STATE_NONE;
 	req->clientWriteCompleted = 0;
 	req->serverWriteCompleted = 0;
+	req->uniqueId->length = 0;
 	req->protocolLine->length = 0;
 	req->protocol->length = 0;
 	req->method->length = 0;
@@ -84,6 +86,22 @@ static void reset_request_state(Request *req) {
 }
 
 static void on_begin_request(ProxyServer *p, Request *req) {
+	//Assign a new unique ID to the request
+	req->uniqueId->length = 0;
+
+	char buff[256];
+	struct timeval tv;
+
+	assert(gettimeofday(&tv, NULL) == 0);
+
+	int sz = snprintf(buff, sizeof(buff), "%lu-%lu-%d",
+		(unsigned long) tv.tv_sec,
+		(unsigned long) tv.tv_usec,
+		req->clientFd);
+	assert(sz > 0);
+	
+	stringAppendBuffer(req->uniqueId, buff, sz);
+
 	if (p->onBeginRequest != NULL) {
 		p->onBeginRequest(p, req);
 	}
@@ -157,7 +175,7 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 	return sock;
 }
 
-int schedule_write_to_client(Request *req) {
+int schedule_write_to_client(ProxyServer *p, Request *req) {
         if (req->clientFd <= 0) {
 		_info("Can not write to invalid client socket.");
 
@@ -169,15 +187,19 @@ int schedule_write_to_client(Request *req) {
 
                 return -2;
         }
+        _info("Scheduling write to client: %d", req->clientFd);
+
         req->clientWriteCompleted = 0;
         req->clientIOFlag |= RW_STATE_WRITE;
 
-        _info("Scheduling write to client: %d", req->clientFd);
+	if (p->onQueueWriteToClient != NULL) {
+		p->onQueueWriteToClient(p, req);
+	}
 
         return 0;
 }
 
-int schedule_write_to_server(Request *req) {
+int schedule_write_to_server(ProxyServer *p, Request *req) {
         if (req->serverFd <= 0) {
 		_info("Can not write to invalid server socket.");
 
@@ -189,10 +211,15 @@ int schedule_write_to_server(Request *req) {
 
                 return -2;
         }
+
+        _info("Scheduling write to server: %d", req->serverFd);
+
         req->serverWriteCompleted = 0;
         req->serverIOFlag |= RW_STATE_WRITE;
 
-        _info("Scheduling write to server: %d", req->serverFd);
+	if (p->onQueueWriteToServer != NULL) {
+		p->onQueueWriteToServer(p, req);
+	}
 
         return 0;
 }
@@ -366,7 +393,7 @@ void output_headers(ProxyServer *p, Request *req) {
 		req->serverIOFlag |= RW_STATE_READ;
 	}
 	if (req->requestState != REQ_CONNECT_TUNNEL_MODE) {
-		schedule_write_to_server(req);
+		schedule_write_to_server(p, req);
 	} else {
 		//Return HTTP/1.0 200 Connection established to client.
 		const char *response = 
@@ -374,7 +401,7 @@ void output_headers(ProxyServer *p, Request *req) {
 		req->responseBuffer->length = 0;
 		bufferAppendBytes(req->responseBuffer,
 			response, strlen(response));
-		schedule_write_to_client(req);
+		schedule_write_to_client(p, req);
 	}
 }
 
@@ -484,7 +511,7 @@ int transfer_request_to_server(ProxyServer *p, Request *req) {
  		 * Transfer request data as is if header is already parsed
 		 * or if we are in tunnel mode.
 		 */
-		return schedule_write_to_server(req);
+		return schedule_write_to_server(p, req);
 	}
 
 	return 0;
@@ -728,7 +755,7 @@ int handle_server_write(ProxyServer *p, int position) {
 		req->requestState = REQ_READ_RESPONSE;
 	}
 	req->responseBuffer->length = bytesRead;
-	schedule_write_to_client(req);
+	schedule_write_to_client(p, req);
 
 	return 0;
 }
@@ -858,6 +885,7 @@ ProxyServer* newProxyServer(int port) {
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 		
+		req->uniqueId = newString();
 		req->protocolLine = newString();
 		req->method = newString();
 		req->protocol = newString();
@@ -880,6 +908,7 @@ void deleteProxyServer(ProxyServer *p) {
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 
+		deleteString(req->uniqueId);
 		deleteString(req->protocolLine);
 		deleteString(req->method);
 		deleteString(req->protocol);

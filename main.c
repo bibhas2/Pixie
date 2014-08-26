@@ -3,15 +3,10 @@
 #include "Proxy.h"
 
 static void print_request_start(ProxyServer *p, Request *req) {
-	printf("*** Request is starting. client: %d server: %d\n", req->clientFd, req->serverFd);
+	printf("New request with ID: %s\n",
+		stringAsCString(req->uniqueId));
 }
 static void print_request_end(ProxyServer *p, Request *req) {
-	printf("*** Request has finished. client: %d server: %d Host: %.*s\n", 
-		req->clientFd, req->serverFd,
-		req->host->length, req->host->buffer);
-	if (req->serverFd == 0) {
-		printf("Request buffer size: %d\n", req->requestBuffer->length);
-	}
 }
 
 int main(int argc, char **argv) {
