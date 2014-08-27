@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
 
 	ProxyServer *p = newProxyServer(port);
 
+	p->persistenceEnabled = 1;
 	p->onBeginRequest = print_request_start;
 	p->onEndRequest = print_request_end;
 

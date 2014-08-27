@@ -28,12 +28,17 @@ typedef struct _Request {
 	Buffer *responseBuffer;
 	size_t clientWriteCompleted;
 	size_t serverWriteCompleted;
+
+	FILE *metaFile;
+	FILE *requestFile;
+	FILE *responseFile;
 } Request;
 
 #define MAX_CLIENTS 256
 
 typedef struct _ProxyServer {
 	Request requests[MAX_CLIENTS];
+	int persistenceEnabled;
 	int port;
 	int serverSocket;
 

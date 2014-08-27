@@ -91,20 +91,41 @@ static void reset_request_state(Request *req) {
 
 static void on_begin_request(ProxyServer *p, Request *req) {
 	//Assign a new unique ID to the request
-	req->uniqueId->length = 0;
-
-	char buff[256];
+	char uid[256];
 	struct timeval tv;
 
 	assert(gettimeofday(&tv, NULL) == 0);
 
-	int sz = snprintf(buff, sizeof(buff), "%lu-%lu-%d",
+	int sz = snprintf(uid, sizeof(uid), "%lu-%lu-%d",
 		(unsigned long) tv.tv_sec,
 		(unsigned long) tv.tv_usec,
 		req->clientFd);
 	assert(sz > 0);
 	
-	stringAppendBuffer(req->uniqueId, buff, sz);
+	req->uniqueId->length = 0; //Rest old value
+	stringAppendBuffer(req->uniqueId, uid, sz);
+
+	//Open the files if persistence is enabled
+	if (p->persistenceEnabled == 1) {
+		_info("Opening files for: %.*s",
+			req->uniqueId->length, req->uniqueId->buffer);
+
+		char file_name[256];
+
+		snprintf(file_name, sizeof(file_name), "%s.meta", uid);
+		req->metaFile = fopen(file_name, "w");
+		snprintf(file_name, sizeof(file_name), "%s.req", uid);
+		req->requestFile = fopen(file_name, "w");
+		snprintf(file_name, sizeof(file_name), "%s.res", uid);
+		req->responseFile = fopen(file_name, "w");
+
+		if (req->metaFile == NULL || req->requestFile == NULL || req->responseFile == NULL) {
+			_info("Failed to save HTTP data files.");
+			if (p->onError != NULL) {
+				p->onError("Failed to save HTTP data files.");
+			}
+		}
+	}
 
 	if (p->onBeginRequest != NULL) {
 		p->onBeginRequest(p, req);
@@ -112,6 +133,23 @@ static void on_begin_request(ProxyServer *p, Request *req) {
 }
 
 static void on_end_request(ProxyServer *p, Request *req) {
+	//Close all files
+	if (p->persistenceEnabled == 1) {
+		_info("Closing files for: %.*s",
+			req->uniqueId->length, req->uniqueId->buffer);
+		if (req->metaFile != NULL) {
+			fclose(req->metaFile);
+			req->metaFile = NULL;
+		}
+		if (req->requestFile != NULL) {
+			fclose(req->requestFile);
+			req->requestFile = NULL;
+		}
+		if (req->responseFile != NULL) {
+			fclose(req->responseFile);
+			req->responseFile = NULL;
+		}
+	}
 	/*
  	 * At times browser opens connections to proxy server that are never used
 	 * to sned request. If that happened then don't call onEndRequest when channel
@@ -196,6 +234,17 @@ int schedule_write_to_client(ProxyServer *p, Request *req) {
         req->clientWriteCompleted = 0;
         req->clientIOFlag |= RW_STATE_WRITE;
 
+	//Save the response data
+	if (p->persistenceEnabled == 1 && req->responseFile != NULL) {
+		size_t sz = fwrite(req->responseBuffer->buffer,
+			req->responseBuffer->length,
+			1,
+			req->responseFile);
+		if (sz == 0) {
+			_info("Failed to write response data.");
+		}
+	}
+
 	if (p->onQueueWriteToClient != NULL) {
 		p->onQueueWriteToClient(p, req);
 	}
@@ -220,6 +269,17 @@ int schedule_write_to_server(ProxyServer *p, Request *req) {
 
         req->serverWriteCompleted = 0;
         req->serverIOFlag |= RW_STATE_WRITE;
+
+	//Save the request data
+	if (p->persistenceEnabled == 1 && req->requestFile != NULL) {
+		size_t sz = fwrite(req->requestBuffer->buffer,
+			req->requestBuffer->length,
+			1,
+			req->requestFile);
+		if (sz == 0) {
+			_info("Failed to write request data to file.");
+		}
+	}
 
 	if (p->onQueueWriteToServer != NULL) {
 		p->onQueueWriteToServer(p, req);
