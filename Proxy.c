@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <sys/time.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -87,18 +86,24 @@ static void reset_request_state(Request *req) {
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
 	req->connectionEstablished = 0;
+	req->requestStartTime.tv_sec = 0;
+	req->requestStartTime.tv_usec = 0;
+	req->responseEndTime.tv_sec = 0;
+	req->responseEndTime.tv_usec = 0;
 }
 
 static void on_begin_request(ProxyServer *p, Request *req) {
-	//Assign a new unique ID to the request
-	char uid[256];
-	struct timeval tv;
+	/*
+	 * Store the request start time. Also use it to generate a unique ID for
+	 * the request.
+	 */
+	assert(gettimeofday(&req->requestStartTime, NULL) == 0);
 
-	assert(gettimeofday(&tv, NULL) == 0);
+	char uid[256];
 
 	int sz = snprintf(uid, sizeof(uid), "%lu-%lu-%d",
-		(unsigned long) tv.tv_sec,
-		(unsigned long) tv.tv_usec,
+		(unsigned long) req->requestStartTime.tv_sec,
+		(unsigned long) req->requestStartTime.tv_usec,
 		req->clientFd);
 	assert(sz > 0);
 	
@@ -135,6 +140,28 @@ static void on_begin_request(ProxyServer *p, Request *req) {
 static void on_end_request(ProxyServer *p, Request *req) {
 	//Close all files
 	if (p->persistenceEnabled == 1) {
+		//Write the meta data about this request.
+		if (req->metaFile != NULL) {
+			fprintf(req->metaFile, "protocol-line\n%.*s\n", 
+				req->protocolLine->length, req->protocolLine->buffer);
+			fprintf(req->metaFile, "protocol\n%.*s\n", 
+				req->protocol->length, req->protocol->buffer);
+			fprintf(req->metaFile, "host\n%.*s\n", 
+				req->host->length, req->host->buffer);
+			fprintf(req->metaFile, "port\n%.*s\n", 
+				req->port->length, req->port->buffer);
+			fprintf(req->metaFile, "path\n%.*s\n", 
+				req->path->length, req->path->buffer);
+			fprintf(req->metaFile, "request-start-seconds\n%lu\n",
+				(unsigned long) req->requestStartTime.tv_sec);
+			fprintf(req->metaFile, "request-start-microseconds\n%lu\n",
+				(unsigned long) req->requestStartTime.tv_usec);
+			fprintf(req->metaFile, "response-end-seconds\n%lu\n",
+				(unsigned long) req->responseEndTime.tv_sec);
+			fprintf(req->metaFile, "response-end-microseconds\n%lu\n",
+				(unsigned long) req->responseEndTime.tv_usec);
+		}
+
 		_info("Closing files for: %.*s",
 			req->uniqueId->length, req->uniqueId->buffer);
 		if (req->metaFile != NULL) {
@@ -150,12 +177,7 @@ static void on_end_request(ProxyServer *p, Request *req) {
 			req->responseFile = NULL;
 		}
 	}
-	/*
- 	 * At times browser opens connections to proxy server that are never used
-	 * to sned request. If that happened then don't call onEndRequest when channel
-	 * is disconnected.
-	 */
-	if (p->onEndRequest != NULL && req->requestState != REQ_STATE_NONE) {
+	if (p->onEndRequest != NULL) {
 		p->onEndRequest(p, req);
 	}
 }
@@ -170,12 +192,29 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	/*
  	 * Mark the request as ended. This may be a successful end
  	 * or an end due to some kind of error in the network, client or server.
+ 	 * Also, at times browser opens connections to proxy server that are never used
+	 * to send request. If that happened then don't call onEndRequest when channel
+	 * is disconnected.
  	 */
-	on_end_request(p, req);
+	if (req->requestState != REQ_STATE_NONE) {
+		on_end_request(p, req);
+	}
 
 	reset_request_state(req);
 
 	return 0;
+}
+
+static void persist_request_buffer(ProxyServer *p, Request *req) {
+	if (p->persistenceEnabled == 1 && req->requestFile != NULL) {
+		size_t sz = fwrite(req->requestBuffer->buffer,
+			req->requestBuffer->length,
+			1,
+			req->requestFile);
+		if (sz == 0) {
+			_info("Failed to write request data to file.");
+		}
+	}
 }
 
 int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) {
@@ -190,7 +229,7 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = PF_INET;
         hints.ai_socktype = SOCK_STREAM;
-        _info("Resolving name...");
+        _info("Resolving name: %s.", host);
         int status = getaddrinfo(host, port_str, &hints, &res);
         DIE(p, status, "Failed to resolve address.");
         if (res == NULL) {
@@ -449,6 +488,12 @@ void output_headers(ProxyServer *p, Request *req) {
 
 		if (req->serverFd < 0) {
 			_info("Failed to connect to server. Disconnecting.");
+			/*
+			 * Since the request can not be written to the server, we
+			 * must manually save it in the request file. Otherwise, the 
+			 * request will not eb logged.
+			 */
+			persist_request_buffer(p, req);
 			shutdown_channel(p, req);
 
 			return;
@@ -794,6 +839,18 @@ int handle_server_write(ProxyServer *p, int position) {
 
         _info("Read response from server (%d) %d bytes", 
 		req->serverFd, bytesRead);
+
+	/*
+	 * We update the response end time here even though we are most likely
+	 * in the middle of a response. This is needed because there is currently 
+	 * no reliable way to accurately determine when the response ended.
+	 * The on_end_request may not get called for a long time for the last request
+	 * in a keep alive situation.
+	 *
+	 * The current approach gives us the accuracy at the expense of calling 
+	 * gettimeofday() unnecessarily too many times.
+	 */
+	assert(gettimeofday(&req->responseEndTime, NULL) == 0);
 
         if (bytesRead < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {

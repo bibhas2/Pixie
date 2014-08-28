@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 #include "../Cute/String.h"
 #include "../Cute/Array.h"
 #include "../Cute/Buffer.h"
@@ -32,6 +34,10 @@ typedef struct _Request {
 	FILE *metaFile;
 	FILE *requestFile;
 	FILE *responseFile;
+
+	//Timing
+	struct timeval requestStartTime;
+	struct timeval responseEndTime;
 } Request;
 
 #define MAX_CLIENTS 256
