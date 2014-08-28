@@ -52,8 +52,8 @@ int main(int   argc, char *argv[] ) {
 	GtkWidget *topFrame = gtk_scrolled_window_new (NULL, NULL);
 	GtkWidget *requestList = gtk_tree_view_new ();
 	GtkWidget *bottomFrame = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
-	GtkWidget *requestFrame = gtk_frame_new (NULL);
-	GtkWidget *responseFrame = gtk_frame_new (NULL);
+	GtkWidget *requestFrame = gtk_frame_new ("Request");
+	GtkWidget *responseFrame = gtk_frame_new ("Response");
 
 	gtk_widget_set_size_request (topFrame, -1, 240);
 	gtk_widget_set_size_request (bottomFrame, -1, 240);
@@ -88,27 +88,42 @@ int main(int   argc, char *argv[] ) {
 
 	add_request(requestList, "1", "host1", "POST", "/mama/papa");
 	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-	add_request(requestList, "1", "host1", "POST", "/mama/papa");
 
-	gtk_widget_show  (paned);
-	gtk_widget_show  (topFrame);
-	gtk_widget_show  (bottomFrame);
-	gtk_widget_show  (responseFrame);
-	gtk_widget_show  (requestFrame);
+	//Create the tabs
+	GtkWidget *notebook, *tabLabel, *scroll;
+	GtkWidget *requestRaw, *requestFormatted, *responseRaw, *responseFormatted;
+
+	notebook = gtk_notebook_new();
+
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	requestRaw = gtk_text_view_new();
+	gtk_container_add (GTK_CONTAINER (scroll), requestRaw);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), 
+		scroll, gtk_label_new("Raw"));
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	requestFormatted = gtk_text_view_new();
+	gtk_container_add (GTK_CONTAINER (scroll), requestFormatted);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), 
+		scroll, gtk_label_new("Formatted"));
+
+	gtk_container_add (GTK_CONTAINER (requestFrame), notebook);
+
+
+	notebook = gtk_notebook_new();
+
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	responseRaw = gtk_text_view_new();
+	gtk_container_add (GTK_CONTAINER (scroll), responseRaw);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), 
+		scroll, gtk_label_new("Raw"));
+	scroll = gtk_scrolled_window_new(NULL, NULL);
+	responseFormatted = gtk_text_view_new();
+	gtk_container_add (GTK_CONTAINER (scroll), responseFormatted);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), 
+		scroll, gtk_label_new("Formatted"));
+
+	gtk_container_add (GTK_CONTAINER (responseFrame), notebook);
+
 	gtk_widget_show_all  (window);
     
 	gtk_main ();
