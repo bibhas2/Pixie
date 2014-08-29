@@ -334,7 +334,7 @@ int schedule_write_to_server(ProxyServer *p, Request *req) {
 #define PROT_PORT 4
 #define PROT_PATH 5
 
-void output_headers(ProxyServer *p, Request *req) {
+static void output_headers(ProxyServer *p, Request *req) {
 	//Parse the protocol line
 	int state = PROT_NONE;
 
@@ -470,6 +470,11 @@ void output_headers(ProxyServer *p, Request *req) {
 		bufferAppendBytes(req->requestBuffer, 
 			req->requestBodyOverflowBuffer->buffer,
 			req->requestBodyOverflowBuffer->length);
+	}
+
+	//Notify listener
+	if (p->onRequestHeaderParsed != NULL) {
+		p->onRequestHeaderParsed(p, req);
 	}
 
 	if (req->serverFd == 0) {

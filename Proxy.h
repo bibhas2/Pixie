@@ -55,6 +55,7 @@ typedef struct _ProxyServer {
 	//Various event notification callbacks
 	void (*onError)(const char* message);
 	void (*onBeginRequest)(struct _ProxyServer *p, Request *req);
+	void (*onRequestHeaderParsed)(struct _ProxyServer *p, Request *req);
 	void (*onEndRequest)(struct _ProxyServer *p, Request *req);
 	void (*onQueueWriteToServer)(struct _ProxyServer *p, Request *req);
 	void (*onQueueWriteToClient)(struct _ProxyServer *p, Request *req);
