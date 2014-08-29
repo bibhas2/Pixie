@@ -1,11 +1,17 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include "../../Proxy.h"
 #include <gtk/gtk.h>
+
+static GtkWidget *requestList;
 
 static gboolean delete_event( GtkWidget *widget,
                               GdkEvent  *event,
                               gpointer   data ) {
-    gtk_main_quit ();
+	gtk_main_quit ();
 
-    return FALSE;
+	return FALSE;
 }
 
 static void add_column(GtkWidget *view, const char *label, int width) {
@@ -42,15 +48,29 @@ void add_request(GtkWidget *list,
 		-1);
 }
 
-int main(int   argc, char *argv[] ) {
+static  gboolean idle_callback (gpointer data) {
+	Request *req = (Request*) data;
+
+	add_request(requestList,
+		"1",
+		stringAsCString(req->host),
+		stringAsCString(req->method),
+		stringAsCString(req->path));
+
+	return FALSE;
+}
+
+static void on_request_header_parsed(ProxyServer *p, Request *req) {
+	gdk_threads_add_idle (idle_callback, req);
+}
+
+static void build_gui() {
 	GtkWidget *window;
-    
-	gtk_init (&argc, &argv);
     
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	GtkWidget *paned = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
 	GtkWidget *topFrame = gtk_scrolled_window_new (NULL, NULL);
-	GtkWidget *requestList = gtk_tree_view_new ();
+	requestList = gtk_tree_view_new ();
 	GtkWidget *bottomFrame = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
 	GtkWidget *requestFrame = gtk_frame_new ("Request");
 	GtkWidget *responseFrame = gtk_frame_new ("Response");
@@ -86,9 +106,10 @@ int main(int   argc, char *argv[] ) {
 		GTK_TREE_MODEL(store));
 	g_object_unref(store);
 
+/*
 	add_request(requestList, "1", "host1", "POST", "/mama/papa");
 	add_request(requestList, "1", "host1", "POST", "/mama/papa");
-
+*/
 	//Create the tabs
 	GtkWidget *notebook, *tabLabel, *scroll;
 	GtkWidget *requestRaw, *requestFormatted, *responseRaw, *responseFormatted;
@@ -125,8 +146,38 @@ int main(int   argc, char *argv[] ) {
 	gtk_container_add (GTK_CONTAINER (responseFrame), notebook);
 
 	gtk_widget_show_all  (window);
+}
     
+int main(int   argc, char *argv[] ) {
+	GtkWidget *window;
+    
+	gtk_init (&argc, &argv);
+	build_gui();
+
+        int port = 8080;
+
+        int c;
+
+        while ((c = getopt(argc, argv, "vp:")) != -1) {
+                if (c == 'v') {
+                        proxySetTrace(1);
+                } else if (c == 'p') {
+                        if (optarg != NULL) {
+                                sscanf(optarg, "%d", &port);
+                        }
+                }
+        }
+
+        ProxyServer *p = newProxyServer(port);
+	
+	p->onRequestHeaderParsed = on_request_header_parsed;
+
+	proxyServerStartInBackground(p);
+
 	gtk_main ();
+
+	proxyServerStop(p);
+	deleteProxyServer(p);
 
 	return 0;
 }
