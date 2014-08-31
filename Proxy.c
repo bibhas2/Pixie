@@ -186,8 +186,12 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	_info("Shutting down channel. Client %d server %d",
 		req->clientFd, req->serverFd);
 
-	close(req->clientFd);
-	close(req->serverFd);
+	if (req->clientFd > 0) {
+		close(req->clientFd);
+	}
+	if (req->serverFd > 0) {
+		close(req->serverFd);
+	}
 
 	/*
  	 * Mark the request as ended. This may be a successful end
@@ -237,7 +241,7 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
         hints.ai_socktype = SOCK_STREAM;
         _info("Resolving name: %s.", host);
         int status = getaddrinfo(host, port_str, &hints, &res);
-        DIE(p, status, "Failed to resolve address.");
+        DIE(p, status, "getaddrinfo() failed.");
         if (res == NULL) {
                 _info("Failed to resolve address: %s", host);
                 DIE(p, -1, "Failed to resolve address");
@@ -245,6 +249,7 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 
         int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         DIE(p, sock, "Failed to open socket.");
+
 	//Enable non-blocking I/O and connect
         status = fcntl(sock, F_SETFL, O_NONBLOCK);
         DIE(p, status, "Failed to set non blocking mode for socket.");
