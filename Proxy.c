@@ -217,8 +217,14 @@ static void persist_request_buffer(ProxyServer *p, Request *req) {
 	}
 }
 
+/*
+ * Asynchronously connects to a server.
+ * Returns 0 in case of success else an error status.
+ */
 int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) {
-        _info("Non-blocking connect to %s:%d for client %d", host, port, req->clientFd);
+        _info("Connecting to %s:%d for client %d", host, port, req->clientFd);
+
+	assert(req->serverFd == 0);
 
         char port_str[128];
 
@@ -244,16 +250,26 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
         DIE(p, status, "Failed to set non blocking mode for socket.");
 	//Connect in a non-blocking manner
         status = connect(sock, res->ai_addr, res->ai_addrlen);
-	if (status < 0 && errno != EINPROGRESS) {
-		close(sock);
-		freeaddrinfo(res);
+	if (status < 0) {
+		if (errno != EINPROGRESS) {
+			close(sock);
+			freeaddrinfo(res);
 
-		DIE(p, status, "Failed to connect to port.");
+			DIE(p, status, "Failed to connect to server.");
+		} else {
+			req->connectionEstablished = 0; //Just to be safe
+			req->serverFd = sock;
+			_info("Server connection is pending: %d", req->serverFd);
+		}
+	} else {
+		req->connectionEstablished = 1;
+		req->serverFd = sock;
+		_info("Server connected immediately: %d", req->serverFd);
 	}
 
         freeaddrinfo(res);
 
-	return sock;
+	return 0;
 }
 
 int schedule_write_to_client(ProxyServer *p, Request *req) {
@@ -488,10 +504,9 @@ static void output_headers(ProxyServer *p, Request *req) {
 			port = isHTTPS ? 443 : 80;
 		}
 
-		req->serverFd = connect_to_server( 
-			p, req, stringAsCString(req->host), port);
+		int status = connect_to_server(p, req, stringAsCString(req->host), port);
 
-		if (req->serverFd < 0) {
+		if (status < 0) {
 			_info("Failed to connect to server. Disconnecting.");
 			/*
 			 * Since the request can not be written to the server, we
@@ -503,6 +518,9 @@ static void output_headers(ProxyServer *p, Request *req) {
 
 			return;
 		}
+
+		assert(req->serverFd > 0);
+
 		//Enable read from server
 		req->serverIOFlag |= RW_STATE_READ;
 	}
@@ -1006,11 +1024,17 @@ int server_loop(ProxyServer *p) {
 				if (FD_ISSET(p->requests[i].clientFd, &writeFdSet)) {
 					handle_client_read(p, i);
 				}
-				if (FD_ISSET(p->requests[i].serverFd, &readFdSet)) {
-					handle_server_write(p, i);
-				}
+				/*
+				 * We need to try to write a server first before we try to read
+				 * to catch any asynch connection error. If we read first,
+				 * system seems to be overwriting the connection error and we 
+				 * can't detect error using getsockopt(SO_ERROR) any more.
+				 */
 				if (FD_ISSET(p->requests[i].serverFd, &writeFdSet)) {
 					handle_server_read(p, i);
+				}
+				if (FD_ISSET(p->requests[i].serverFd, &readFdSet)) {
+					handle_server_write(p, i);
 				}
 			}
 		}
