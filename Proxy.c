@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -115,13 +116,16 @@ static void on_begin_request(ProxyServer *p, Request *req) {
 		_info("Opening files for: %.*s",
 			req->uniqueId->length, req->uniqueId->buffer);
 
-		char file_name[256];
+		char file_name[512];
 
-		snprintf(file_name, sizeof(file_name), "%s.meta", uid);
+		snprintf(file_name, sizeof(file_name), "%s/%s.meta", 
+			stringAsCString(p->persistenceFolder), uid);
 		req->metaFile = fopen(file_name, "w");
-		snprintf(file_name, sizeof(file_name), "%s.req", uid);
+		snprintf(file_name, sizeof(file_name), "%s/%s.req", 
+			stringAsCString(p->persistenceFolder), uid);
 		req->requestFile = fopen(file_name, "w");
-		snprintf(file_name, sizeof(file_name), "%s.res", uid);
+		snprintf(file_name, sizeof(file_name), "%s/%s.res", 
+			stringAsCString(p->persistenceFolder), uid);
 		req->responseFile = fopen(file_name, "w");
 
 		if (req->metaFile == NULL || req->requestFile == NULL || req->responseFile == NULL) {
@@ -1055,6 +1059,7 @@ ProxyServer* newProxyServer(int port) {
 
 	p->port = port;
 	p->onError = default_on_error;
+	p->persistenceFolder = newString();
 
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
@@ -1105,12 +1110,42 @@ void deleteProxyServer(ProxyServer *p) {
 		deleteArray(req->headerValues);
 	}
 
+	deleteString(p->persistenceFolder);
+
 	free(p);
 }
 
+static int configure_persistence_folder(ProxyServer *p) {
+	const char *home = getenv("HOME");
+
+	if (home != NULL) {
+		stringAppendCString(p->persistenceFolder, home);
+	}
+
+	stringAppendCString(p->persistenceFolder, "/.pixie");
+	
+	const char *dir = stringAsCString(p->persistenceFolder);
+
+	_info("Creating persistence folder: %s", dir);
+
+	int status = mkdir(dir, 0700);
+	if (status < 0) {
+		if (errno == EEXIST) {
+			//Path already exists. It may not be a folder. For now do nothing.
+			_info("Persistence folder already exists.");
+		} else {
+			DIE(p, status, "Failed to create persistence folder.");
+		}
+	}
+
+	return 0;
+}
 
 int proxyServerStart(ProxyServer* p) {
         int status;
+
+	//Get the folder to persist data
+	configure_persistence_folder(p);
 
 	//Create the server control pipes
 	status = pipe(p->controlPipe);

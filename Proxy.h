@@ -47,6 +47,7 @@ typedef struct _ProxyServer {
 	int persistenceEnabled;
 	int port;
 	int serverSocket;
+	String *persistenceFolder;
 
 	//Server control mechanism
 	int controlPipe[2];
