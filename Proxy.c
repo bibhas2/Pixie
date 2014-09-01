@@ -147,15 +147,15 @@ static void on_end_request(ProxyServer *p, Request *req) {
 		//Write the meta data about this request.
 		if (req->metaFile != NULL) {
 			fprintf(req->metaFile, "protocol-line\n%.*s\n", 
-				req->protocolLine->length, req->protocolLine->buffer);
+				(int) req->protocolLine->length, req->protocolLine->buffer);
 			fprintf(req->metaFile, "protocol\n%.*s\n", 
-				req->protocol->length, req->protocol->buffer);
+				(int) req->protocol->length, req->protocol->buffer);
 			fprintf(req->metaFile, "host\n%.*s\n", 
-				req->host->length, req->host->buffer);
+				(int) req->host->length, req->host->buffer);
 			fprintf(req->metaFile, "port\n%.*s\n", 
-				req->port->length, req->port->buffer);
+				(int) req->port->length, req->port->buffer);
 			fprintf(req->metaFile, "path\n%.*s\n", 
-				req->path->length, req->path->buffer);
+				(int) req->path->length, req->path->buffer);
 			fprintf(req->metaFile, "request-start-seconds\n%lu\n",
 				(unsigned long) req->requestStartTime.tv_sec);
 			fprintf(req->metaFile, "request-start-microseconds\n%lu\n",
@@ -988,6 +988,8 @@ int handle_control_command(ProxyServer *p) {
 		_info("Received stop control command.");
 		p->continueOperation = 0;
 	}
+
+	return 0;
 }
 
 int server_loop(ProxyServer *p) {
@@ -1197,10 +1199,12 @@ int send_control_command(ProxyServer *p, const char *cmd, int len) {
 	int sz = write(p->controlPipe[1], cmd, len);
 
 	DIE(p, sz, "Failed to write cotrol command.");
+
+	return 0;
 }
 
 int proxyServerStop(ProxyServer *p) {
-	send_control_command(p, "Q", 1);
+	return send_control_command(p, "Q", 1);
 }
 
 static void * _bgStartHelper(void *p) {
@@ -1212,8 +1216,12 @@ static void * _bgStartHelper(void *p) {
 
 int proxyServerStartInBackground(ProxyServer* server) {
 	_info("Creating background thread to run the server.");
+
 	pthread_t t;
+
 	int status = pthread_create(&t, NULL, _bgStartHelper, server);
 
 	DIE(server, status, "Failed to create background thread.");
+
+	return 0;
 }
