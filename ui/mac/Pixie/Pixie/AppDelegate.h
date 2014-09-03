@@ -18,5 +18,11 @@
 @property (weak) IBOutlet NSTableView *requestTableView;
 @property (unsafe_unretained) IBOutlet NSTextView *rawRequestText;
 @property (unsafe_unretained) IBOutlet NSTextView *rawResponseText;
+@property (weak) IBOutlet NSMenuItem *stopServerMenuItem;
+@property (weak) IBOutlet NSMenuItem *startServerMenuItem;
+@property (weak) IBOutlet NSMenuItem *enableTraceMenuItem;
+- (IBAction)stopServer:(id)sender;
+- (IBAction)startServer:(id)sender;
+- (IBAction)enableTrace:(id)sender;
 
 @end

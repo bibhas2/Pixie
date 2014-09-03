@@ -27,9 +27,13 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     self->proxyServer->onRequestHeaderParsed = on_request_header_parsed;
     self->proxyServer->persistenceEnabled = TRUE;
     
-    //proxySetTrace(1);
+    [[self.enableTraceMenuItem menu] setAutoenablesItems:NO];
+     
+    proxySetTrace(1);
+    [self.enableTraceMenuItem setState:NSOnState];
     
-    proxyServerStartInBackground(self->proxyServer);
+    proxyServerStartInBackground(self->proxyServer);    
+    [self.startServerMenuItem setEnabled:FALSE];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
@@ -112,5 +116,26 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     HttpRequest *req = [self.requestList objectAtIndex:pos];
     
     [self showRequestDetails: req];
+}
+
+- (IBAction)stopServer:(id)sender {
+    proxyServerStop(self->proxyServer);
+    [self.startServerMenuItem setEnabled:TRUE];
+    [self.stopServerMenuItem setEnabled:FALSE];
+}
+
+- (IBAction)startServer:(id)sender {
+    proxyServerStartInBackground(self->proxyServer);
+    [self.startServerMenuItem setEnabled:FALSE];
+    [self.stopServerMenuItem setEnabled:TRUE];
+}
+
+- (IBAction)enableTrace:(id)sender {
+    int newState = [self.enableTraceMenuItem state] == NSOnState ? NSOffState : NSOnState;
+    
+    proxySetTrace(newState == NSOnState);
+    
+    [self.enableTraceMenuItem setState:newState];
+    
 }
 @end
