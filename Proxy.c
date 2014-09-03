@@ -11,7 +11,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <assert.h>
-#include <pthread.h>
 
 #include "Proxy.h"
 
@@ -1192,6 +1191,22 @@ int proxyServerStart(ProxyServer* p) {
 	close(p->controlPipe[0]);
 	close(p->controlPipe[1]);
 
+	p->controlPipe[0] = p->controlPipe[1] = 0; //Reset
+
+	//Close any open network connections
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		Request *req = p->requests + i;
+
+		if (req->clientFd != 0 || req->serverFd != 0) {
+			shutdown_channel(p, req);
+		}
+	}
+
+	//Reset all server state
+	p->port = 0;
+	p->isInBackgroundMode = 0;
+	p->continueOperation = 0;
+
 	return 0;
 }
 
@@ -1204,7 +1219,23 @@ int send_control_command(ProxyServer *p, const char *cmd, int len) {
 }
 
 int proxyServerStop(ProxyServer *p) {
-	return send_control_command(p, "Q", 1);
+	int status = send_control_command(p, "Q", 1);
+
+	if (p->isInBackgroundMode != 1) {
+		return 0;
+	}
+
+	if (status >= 0) {
+		//Wait for the thread to end.
+		_info("Waiting for background thread to end.");
+		status = pthread_join(p->backgroundThreadId, NULL);
+		DIE(p, status, "Failed to wait for background thread to end.");
+		_info("Done waiting for background thread to end.");
+	} else {
+		//May be try to kill the thread
+	}
+
+	return 0;
 }
 
 static void * _bgStartHelper(void *p) {
@@ -1217,11 +1248,12 @@ static void * _bgStartHelper(void *p) {
 int proxyServerStartInBackground(ProxyServer* server) {
 	_info("Creating background thread to run the server.");
 
-	pthread_t t;
-
-	int status = pthread_create(&t, NULL, _bgStartHelper, server);
+	int status = pthread_create(&(server->backgroundThreadId), 
+		NULL, _bgStartHelper, server);
 
 	DIE(server, status, "Failed to create background thread.");
+
+	server->isInBackgroundMode = 1;
 
 	return 0;
 }

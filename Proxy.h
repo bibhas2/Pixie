@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <pthread.h>
 
 #include "../Cute/String.h"
 #include "../Cute/Array.h"
@@ -48,6 +49,8 @@ typedef struct _ProxyServer {
 	int port;
 	int serverSocket;
 	String *persistenceFolder;
+	pthread_t backgroundThreadId;
+	int isInBackgroundMode;
 
 	//Server control mechanism
 	int controlPipe[2];
