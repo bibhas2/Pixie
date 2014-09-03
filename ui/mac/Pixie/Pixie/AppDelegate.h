@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import "Proxy.h"
 
-@interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource> {
+@interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate> {
     ProxyServer *proxyServer;
 }
 

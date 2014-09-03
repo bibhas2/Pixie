@@ -25,8 +25,10 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     
     self->proxyServer = newProxyServer(9090);
     self->proxyServer->onRequestHeaderParsed = on_request_header_parsed;
+    self->proxyServer->persistenceEnabled = TRUE;
     
-    proxySetTrace(1);
+    //proxySetTrace(1);
+    
     proxyServerStartInBackground(self->proxyServer);
 }
 
@@ -71,4 +73,44 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     return returnValue;
 }
 
+- (void) showRequestDetails: (HttpRequest*) req {
+    NSString *filePath, *contents;
+    NSError *error;
+    
+    //Get the request file name
+    filePath = [NSString stringWithFormat:@"%s/%@.req",
+                stringAsCString(self->proxyServer->persistenceFolder),
+                req.uniqueId];
+    contents = [NSString stringWithContentsOfFile:filePath encoding: NSUTF8StringEncoding error:&error];
+    if (error == NULL) {
+        [self.rawRequestText setString:contents];
+    } else {
+        NSLog(@"Failed to load file: %@", filePath);
+        [self.rawRequestText setString:@""];
+    }
+
+    //Get the response
+    filePath = [NSString stringWithFormat:@"%s/%@.res",
+                stringAsCString(self->proxyServer->persistenceFolder),
+                req.uniqueId];
+    contents = [NSString stringWithContentsOfFile:filePath encoding: NSUTF8StringEncoding error:&error];
+    if (error == NULL) {
+        [self.rawResponseText setString:contents];
+    } else {
+        NSLog(@"Failed to load file: %@", filePath);
+        [self.rawResponseText setString:@""];
+    }
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *) notification {
+    long pos = [self.requestTableView selectedRow];
+    
+    if (pos < 0) {
+        return;
+    }
+    
+    HttpRequest *req = [self.requestList objectAtIndex:pos];
+    
+    [self showRequestDetails: req];
+}
 @end
