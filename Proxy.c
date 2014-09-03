@@ -1203,9 +1203,9 @@ int proxyServerStart(ProxyServer* p) {
 	}
 
 	//Reset all server state
-	p->port = 0;
 	p->isInBackgroundMode = 0;
 	p->continueOperation = 0;
+	p->persistenceFolder->length = 0;
 
 	return 0;
 }
