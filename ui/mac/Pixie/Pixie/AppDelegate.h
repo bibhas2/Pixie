@@ -7,9 +7,16 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "Proxy.h"
 
-@interface AppDelegate : NSObject <NSApplicationDelegate>
+@interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource> {
+    ProxyServer *proxyServer;
+}
 
+@property (strong, nonatomic) NSMutableArray *requestList;
 @property (assign) IBOutlet NSWindow *window;
+@property (weak) IBOutlet NSTableView *requestTableView;
+@property (unsafe_unretained) IBOutlet NSTextView *rawRequestText;
+@property (unsafe_unretained) IBOutlet NSTextView *rawResponseText;
 
 @end

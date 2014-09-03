@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A301439019B75B6A007B687D /* libcute.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A301438F19B75B6A007B687D /* libcute.a */; };
+		A301439219B75BB2007B687D /* libpixie.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A301439119B75BB2007B687D /* libpixie.a */; };
+		A301439619B7619A007B687D /* HttpRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = A301439519B7619A007B687D /* HttpRequest.m */; };
 		A3EE46F919B74C730092D3CB /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3EE46F819B74C730092D3CB /* Cocoa.framework */; };
 		A3EE470319B74C730092D3CB /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A3EE470119B74C730092D3CB /* InfoPlist.strings */; };
 		A3EE470519B74C730092D3CB /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A3EE470419B74C730092D3CB /* main.m */; };
@@ -31,6 +34,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A301438F19B75B6A007B687D /* libcute.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcute.a; path = ../../../../Cute/libcute.a; sourceTree = "<group>"; };
+		A301439119B75BB2007B687D /* libpixie.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpixie.a; path = ../../../libpixie.a; sourceTree = "<group>"; };
+		A301439419B7619A007B687D /* HttpRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HttpRequest.h; sourceTree = "<group>"; };
+		A301439519B7619A007B687D /* HttpRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpRequest.m; sourceTree = "<group>"; };
 		A3EE46F519B74C730092D3CB /* Pixie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pixie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3EE46F819B74C730092D3CB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		A3EE46FB19B74C730092D3CB /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -57,6 +64,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A301439219B75BB2007B687D /* libpixie.a in Frameworks */,
+				A301439019B75B6A007B687D /* libcute.a in Frameworks */,
 				A3EE46F919B74C730092D3CB /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -73,6 +82,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A301439319B76170007B687D /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				A301439419B7619A007B687D /* HttpRequest.h */,
+				A301439519B7619A007B687D /* HttpRequest.m */,
+			);
+			name = Model;
+			sourceTree = "<group>";
+		};
 		A3EE46EC19B74C730092D3CB = {
 			isa = PBXGroup;
 			children = (
@@ -95,6 +113,8 @@
 		A3EE46F719B74C730092D3CB /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				A301439119B75BB2007B687D /* libpixie.a */,
+				A301438F19B75B6A007B687D /* libcute.a */,
 				A3EE46F819B74C730092D3CB /* Cocoa.framework */,
 				A3EE471719B74C730092D3CB /* XCTest.framework */,
 				A3EE46FA19B74C730092D3CB /* Other Frameworks */,
@@ -115,6 +135,7 @@
 		A3EE46FE19B74C730092D3CB /* Pixie */ = {
 			isa = PBXGroup;
 			children = (
+				A301439319B76170007B687D /* Model */,
 				A3EE470A19B74C730092D3CB /* AppDelegate.h */,
 				A3EE470B19B74C730092D3CB /* AppDelegate.m */,
 				A3EE470D19B74C730092D3CB /* MainMenu.xib */,
@@ -253,6 +274,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A3EE470C19B74C730092D3CB /* AppDelegate.m in Sources */,
+				A301439619B7619A007B687D /* HttpRequest.m in Sources */,
 				A3EE470519B74C730092D3CB /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -314,7 +336,7 @@
 		A3EE472419B74C730092D3CB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
@@ -352,7 +374,7 @@
 		A3EE472519B74C730092D3CB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
@@ -384,12 +406,20 @@
 		A3EE472719B74C730092D3CB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Pixie/Pixie-Prefix.pch";
 				INFOPLIST_FILE = "Pixie/Pixie-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/bibhas/Documents/Cute,
+					/Users/bibhas/Documents/Pixie,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "../../../Cute ../../../";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -397,12 +427,20 @@
 		A3EE472819B74C730092D3CB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Pixie/Pixie-Prefix.pch";
 				INFOPLIST_FILE = "Pixie/Pixie-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/Users/bibhas/Documents/Cute,
+					/Users/bibhas/Documents/Pixie,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "../../../Cute ../../../";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -466,6 +504,7 @@
 				A3EE472819B74C730092D3CB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A3EE472919B74C730092D3CB /* Build configuration list for PBXNativeTarget "PixieTests" */ = {
 			isa = XCConfigurationList;
@@ -474,6 +513,7 @@
 				A3EE472B19B74C730092D3CB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
