@@ -34,6 +34,14 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     
     proxyServerStartInBackground(self->proxyServer);    
     [self.startServerMenuItem setEnabled:FALSE];
+    
+    NSScrollView *textScrollView = [self.rawResponseText enclosingScrollView];
+    NSTextContainer *textContainer = [self.rawResponseText textContainer];
+    
+    [textScrollView setHasHorizontalScroller:YES];
+    [textContainer setContainerSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)];
+    [textContainer setWidthTracksTextView: NO];
+    [self.rawResponseText setHorizontallyResizable: YES];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
@@ -102,7 +110,7 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
         [self.rawResponseText setString:contents];
     } else {
         NSLog(@"Failed to load file: %@", filePath);
-        [self.rawResponseText setString:@""];
+        [self.rawResponseText setString: @""];
     }
 }
 

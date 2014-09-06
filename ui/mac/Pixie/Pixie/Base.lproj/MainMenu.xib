@@ -14,7 +14,7 @@
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
                 <outlet property="enableTraceMenuItem" destination="Ow0-Hs-Ufh" id="vgM-wH-o1T"/>
-                <outlet property="rawRequestText" destination="hLq-5u-swA" id="1l2-jk-bdK"/>
+                <outlet property="rawRequestText" destination="9Nx-0m-s4I" id="erB-CO-iZa"/>
                 <outlet property="rawResponseText" destination="GT2-Hm-fyG" id="d1A-Sg-gfO"/>
                 <outlet property="requestTableView" destination="t7G-T5-KmK" id="Me5-eD-0CQ"/>
                 <outlet property="startServerMenuItem" destination="1UK-8n-QPP" id="Uku-Rc-d01"/>
@@ -507,42 +507,69 @@
                                                     <rect key="frame" x="1" y="1" width="342" height="206"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
-                                                        <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5Sd-QT-fqf">
-                                                            <rect key="frame" x="2" y="3" width="338" height="205"/>
-                                                            <autoresizingMask key="autoresizingMask"/>
-                                                            <clipView key="contentView" id="6Lv-Pi-PpL">
-                                                                <rect key="frame" x="1" y="1" width="336" height="203"/>
-                                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                                <subviews>
-                                                                    <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="hLq-5u-swA" userLabel="RawRequest">
-                                                                        <rect key="frame" x="0.0" y="0.0" width="336" height="203"/>
+                                                        <tabView translatesAutoresizingMaskIntoConstraints="NO" id="Z6W-M9-v60">
+                                                            <rect key="frame" x="-5" y="-7" width="352" height="217"/>
+                                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                            <tabViewItems>
+                                                                <tabViewItem label="Raw" identifier="1" id="PXl-Vn-l8a">
+                                                                    <view key="view" id="TiJ-Wc-Ioy">
+                                                                        <rect key="frame" x="10" y="33" width="332" height="171"/>
                                                                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                                                        <size key="minSize" width="336" height="203"/>
-                                                                        <size key="maxSize" width="463" height="10000000"/>
-                                                                        <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
-                                                                        <size key="minSize" width="336" height="203"/>
-                                                                        <size key="maxSize" width="463" height="10000000"/>
-                                                                    </textView>
-                                                                </subviews>
-                                                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                                                            </clipView>
-                                                            <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="6In-qG-JwM">
-                                                                <rect key="frame" x="-100" y="-100" width="87" height="18"/>
-                                                                <autoresizingMask key="autoresizingMask"/>
-                                                            </scroller>
-                                                            <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="uam-jB-dLK">
-                                                                <rect key="frame" x="321" y="1" width="16" height="203"/>
-                                                                <autoresizingMask key="autoresizingMask"/>
-                                                            </scroller>
-                                                        </scrollView>
+                                                                        <subviews>
+                                                                            <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jEy-1T-J1R">
+                                                                                <rect key="frame" x="0.0" y="0.0" width="332" height="171"/>
+                                                                                <autoresizingMask key="autoresizingMask"/>
+                                                                                <clipView key="contentView" id="uo4-0T-epw">
+                                                                                    <rect key="frame" x="1" y="1" width="330" height="169"/>
+                                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                                    <subviews>
+                                                                                        <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="9Nx-0m-s4I">
+                                                                                            <rect key="frame" x="0.0" y="0.0" width="330" height="169"/>
+                                                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                                            <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                                                                            <size key="minSize" width="330" height="169"/>
+                                                                                            <size key="maxSize" width="463" height="10000000"/>
+                                                                                            <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                                                                            <size key="minSize" width="330" height="169"/>
+                                                                                            <size key="maxSize" width="463" height="10000000"/>
+                                                                                        </textView>
+                                                                                    </subviews>
+                                                                                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                                                                </clipView>
+                                                                                <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="w1Z-ES-sx0">
+                                                                                    <rect key="frame" x="-100" y="-100" width="87" height="18"/>
+                                                                                    <autoresizingMask key="autoresizingMask"/>
+                                                                                </scroller>
+                                                                                <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="tX7-Ph-8Q6">
+                                                                                    <rect key="frame" x="315" y="1" width="16" height="169"/>
+                                                                                    <autoresizingMask key="autoresizingMask"/>
+                                                                                </scroller>
+                                                                            </scrollView>
+                                                                        </subviews>
+                                                                        <constraints>
+                                                                            <constraint firstAttribute="bottom" secondItem="jEy-1T-J1R" secondAttribute="bottom" id="NrK-id-NT3"/>
+                                                                            <constraint firstItem="jEy-1T-J1R" firstAttribute="leading" secondItem="TiJ-Wc-Ioy" secondAttribute="leading" id="iTm-8p-VyC"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="jEy-1T-J1R" secondAttribute="trailing" id="ljz-kM-Bat"/>
+                                                                            <constraint firstItem="jEy-1T-J1R" firstAttribute="top" secondItem="TiJ-Wc-Ioy" secondAttribute="top" id="mtt-Cy-Spd"/>
+                                                                        </constraints>
+                                                                    </view>
+                                                                </tabViewItem>
+                                                                <tabViewItem label="Parameters" identifier="2" id="pbP-G6-IYz">
+                                                                    <view key="view" id="xEj-ee-MZk">
+                                                                        <rect key="frame" x="10" y="33" width="332" height="171"/>
+                                                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                    </view>
+                                                                </tabViewItem>
+                                                            </tabViewItems>
+                                                        </tabView>
                                                     </subviews>
                                                 </view>
                                                 <constraints>
-                                                    <constraint firstItem="5Sd-QT-fqf" firstAttribute="top" secondItem="Ecg-ag-jpM" secondAttribute="top" constant="13" id="Kfl-W9-bUW"/>
-                                                    <constraint firstItem="5Sd-QT-fqf" firstAttribute="leading" secondItem="Ecg-ag-jpM" secondAttribute="leading" id="Xl5-4k-iDl"/>
-                                                    <constraint firstAttribute="bottom" secondItem="5Sd-QT-fqf" secondAttribute="bottom" id="q37-X0-a1Q"/>
-                                                    <constraint firstAttribute="trailing" secondItem="5Sd-QT-fqf" secondAttribute="trailing" id="xh1-34-Vwm"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Z6W-M9-v60" secondAttribute="trailing" id="15k-6R-O9w"/>
+                                                    <constraint firstAttribute="bottom" secondItem="Z6W-M9-v60" secondAttribute="bottom" id="85L-Yo-8Fg"/>
+                                                    <constraint firstItem="Z6W-M9-v60" firstAttribute="top" secondItem="Ecg-ag-jpM" secondAttribute="top" constant="17" id="9FC-Gk-ngt"/>
+                                                    <constraint firstItem="Z6W-M9-v60" firstAttribute="leading" secondItem="Ecg-ag-jpM" secondAttribute="leading" id="MwO-Nt-nLq"/>
                                                 </constraints>
                                                 <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
                                                 <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
@@ -561,7 +588,7 @@
                                                                 <rect key="frame" x="1" y="1" width="297" height="203"/>
                                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                 <subviews>
-                                                                    <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="GT2-Hm-fyG">
+                                                                    <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" id="GT2-Hm-fyG">
                                                                         <rect key="frame" x="0.0" y="0.0" width="297" height="203"/>
                                                                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
