@@ -28,6 +28,11 @@
 #define REQ_READ_RESPONSE 5
 #define REQ_CONNECT_TUNNEL_MODE 6
 
+#define RES_HEADER_STATE_PROTOCOL 0
+#define RES_HEADER_STATE_STATUS_CODE 1
+#define RES_HEADER_STATE_STATUS_MSG 2
+#define RES_HEADER_STATE_DONE 5
+
 #define CMD_NONE 0
 #define CMD_STOP 1
 
@@ -91,6 +96,8 @@ static void reset_request_state(Request *req) {
 	req->host->length = 0;
 	req->port->length = 0;
 	req->path->length = 0;
+	req->responseStatusMessage->length = 0;
+	req->responseStatusCode->length = 0;
 	req->headerName = NULL;
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
@@ -99,6 +106,7 @@ static void reset_request_state(Request *req) {
 	req->requestStartTime.tv_usec = 0;
 	req->responseEndTime.tv_sec = 0;
 	req->responseEndTime.tv_usec = 0;
+	req->responseHeaderParseState = RES_HEADER_STATE_PROTOCOL;
 }
 
 static void on_begin_request(ProxyServer *p, Request *req) {
@@ -172,6 +180,12 @@ static void on_end_request(ProxyServer *p, Request *req) {
 				(unsigned long) req->responseEndTime.tv_sec);
 			fprintf(req->metaFile, "response-end-microseconds\n%lu\n",
 				(unsigned long) req->responseEndTime.tv_usec);
+			fprintf(req->metaFile, "response-status-code\n%.*s\n", 
+				(int) req->responseStatusCode->length, 
+				req->responseStatusCode->buffer);
+			fprintf(req->metaFile, "response-status-message\n%.*s\n", 
+				(int) req->responseStatusMessage->length, 
+				req->responseStatusMessage->buffer);
 		}
 
 		_info("Closing files for: %.*s",
@@ -289,6 +303,43 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 	return 0;
 }
 
+static void parse_response_header(ProxyServer *p, Request *req) {
+	assert(req->responseHeaderParseState != RES_HEADER_STATE_DONE);
+
+	for (int i = 0; i < req->responseBuffer->length; ++i) {
+		char ch = req->responseBuffer->buffer[i];
+
+		if (ch == '\r') {
+			continue;
+		}
+
+		if (req->responseHeaderParseState == RES_HEADER_STATE_PROTOCOL) {
+			if (ch == ' ') {
+				req->responseHeaderParseState = RES_HEADER_STATE_STATUS_CODE;
+				continue;
+			}
+			//Don't really store protocol name anywhere
+		}
+		if (req->responseHeaderParseState == RES_HEADER_STATE_STATUS_CODE) {
+			if (ch == ' ') {
+				req->responseHeaderParseState = RES_HEADER_STATE_STATUS_MSG;
+				continue;
+			}
+			stringAppendChar(req->responseStatusCode, ch);
+			continue;
+		}
+		if (req->responseHeaderParseState == RES_HEADER_STATE_STATUS_MSG) {
+			if (ch == '\n') {
+				req->responseHeaderParseState = RES_HEADER_STATE_DONE;
+				continue;
+			}
+			stringAppendChar(req->responseStatusMessage, ch);
+			continue;
+		}
+	}
+		        
+}
+
 int schedule_write_to_client(ProxyServer *p, Request *req) {
         if (req->clientFd <= 0) {
 		_info("Can not write to invalid client socket.");
@@ -302,6 +353,13 @@ int schedule_write_to_client(ProxyServer *p, Request *req) {
                 return -2;
         }
         _info("Scheduling write to client: %d", req->clientFd);
+
+	/*
+	 * If we have not finished parsing header keep parsing it.
+	 */
+	if (req->responseHeaderParseState != RES_HEADER_STATE_DONE) {
+		parse_response_header(p, req);
+	}
 
         req->clientWriteCompleted = 0;
         req->clientIOFlag |= RW_STATE_WRITE;
@@ -444,25 +502,6 @@ static void output_headers(ProxyServer *p, Request *req) {
 			stringAppendChar(req->path, ch);
 		}
 	}
-
-/*
-	_info("Protcol line [%s]\n", stringAsCString(req->protocolLine));
-	_info("Method [%s]\n", stringAsCString(req->method));
-	_info("Protocol [%s]\n", stringAsCString(req->protocol));
-	_info("Host [%s]\n", stringAsCString(req->host));
-	_info("Port [%s]\n", stringAsCString(req->port));
-	_info("Path [%s]\n", stringAsCString(req->path));
-
-	for (int i = 0; i < req->headerNames->length; ++i) {
-		String *name = arrayGet(req->headerNames, i);
-		String *value = arrayGet(req->headerValues, i);
-
-		_info("Header [%s][%s]\n",
-			stringAsCString(name),
-			stringAsCString(value));
-	}
-*/
-
 
 	//If we have already read a bit of body save it in overflow buffer
 	req->requestBodyOverflowBuffer->length = 0;
@@ -1081,6 +1120,8 @@ ProxyServer* newProxyServer(int port) {
 		req->host = newString();
 		req->port = newString();
 		req->path = newString();
+		req->responseStatusMessage = newString();
+		req->responseStatusCode = newStringWithCapacity(4);
 		req->headerNames = newArray(10);
 		req->headerValues = newArray(10);
 		req->requestBuffer = newBufferWithCapacity(512);
@@ -1104,6 +1145,8 @@ void deleteProxyServer(ProxyServer *p) {
 		deleteString(req->host);
 		deleteString(req->port);
 		deleteString(req->path);
+		deleteString(req->responseStatusCode);
+		deleteString(req->responseStatusMessage);
 
 		deleteBuffer(req->requestBuffer);
 		deleteBuffer(req->responseBuffer);
