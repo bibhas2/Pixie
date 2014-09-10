@@ -41,8 +41,6 @@ int main(int argc, char **argv) {
 		if (strncmp(buff, "quit", 4) == 0) {
 			printf("Stopping server...\n");
 			proxyServerStop(p);
-			puts("Hit enter to continue.");
-			getchar();
 			break;
 		}
 	}
