@@ -69,6 +69,17 @@ static void reset_request_state(Request *req) {
 	req->clientFd = 0;
 	req->serverFd = 0;
 
+	//Free all header strings
+	for (int j = 0; j < req->headerNames->length; ++j) {
+		deleteString(arrayGet(req->headerNames, j));
+	}
+	req->headerNames->length = 0;
+
+	for (int j = 0; j < req->headerValues->length; ++j) {
+		deleteString(arrayGet(req->headerValues, j));
+	}
+	req->headerValues->length = 0;
+
 	req->clientIOFlag = RW_STATE_NONE;
 	req->serverIOFlag = RW_STATE_NONE;
 	req->clientWriteCompleted = 0;
@@ -80,8 +91,6 @@ static void reset_request_state(Request *req) {
 	req->host->length = 0;
 	req->port->length = 0;
 	req->path->length = 0;
-	req->headerNames->length = 0;
-	req->headerValues->length = 0;
 	req->headerName = NULL;
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
@@ -1100,14 +1109,8 @@ void deleteProxyServer(ProxyServer *p) {
 		deleteBuffer(req->responseBuffer);
 		deleteBuffer(req->requestBodyOverflowBuffer);
 
-		for (int j = 0; j < req->headerNames->length; ++j) {
-			deleteString(arrayGet(req->headerNames, j));
-		}
 		deleteArray(req->headerNames);
 
-		for (int j = 0; j < req->headerValues->length; ++j) {
-			deleteString(arrayGet(req->headerValues, j));
-		}
 		deleteArray(req->headerValues);
 	}
 
