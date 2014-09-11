@@ -8,9 +8,11 @@
 
 #import <Cocoa/Cocoa.h>
 #import "Proxy.h"
+#import "Persistence.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate> {
     ProxyServer *proxyServer;
+    RequestRecord *requestRecord;
 }
 
 @property (strong, nonatomic) NSMutableArray *requestList;
@@ -24,5 +26,7 @@
 - (IBAction)stopServer:(id)sender;
 - (IBAction)startServer:(id)sender;
 - (IBAction)enableTrace:(id)sender;
+- (IBAction)deleteRequest:(id)sender;
+- (IBAction)deleteAllRequests:(id)sender;
 
 @end

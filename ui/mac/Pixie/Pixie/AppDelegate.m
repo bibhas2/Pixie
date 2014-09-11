@@ -40,6 +40,7 @@ static void on_end_request(ProxyServer *p, Request *req) {
     self->proxyServer->onEndRequest = on_end_request;
     self->proxyServer->persistenceEnabled = TRUE;
     
+    self->requestRecord = newRequestRecord();
     //Manually update menu item states
     [[self.enableTraceMenuItem menu] setAutoenablesItems:NO];
      
@@ -61,8 +62,8 @@ static void on_end_request(ProxyServer *p, Request *req) {
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
     proxyServerStop(self->proxyServer);
-    //Wait for the server to stop before freeing memory
-    //deleteProxyServer(self->proxyServer);
+    deleteRequestRecord(self->requestRecord);
+    deleteProxyServer(self->proxyServer);
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
     return self.requestList.count;
@@ -120,20 +121,11 @@ static void on_end_request(ProxyServer *p, Request *req) {
 }
 
 - (void) showRequestDetails: (HttpRequest*) req {
-    NSString *filePath, *contents;
+    NSString *contents, *filePath;
     NSError *error;
     
-    //Get the request file name
-    filePath = [NSString stringWithFormat:@"%s/%@.req",
-                stringAsCString(self->proxyServer->persistenceFolder),
-                req.uniqueId];
-    contents = [NSString stringWithContentsOfFile:filePath encoding: NSUTF8StringEncoding error:&error];
-    if (error == NULL) {
-        [self.rawRequestText setString:contents];
-    } else {
-        NSLog(@"Failed to load file: %@", filePath);
-        [self.rawRequestText setString:@""];
-    }
+    contents = [[NSString alloc] initWithBytes:self->requestRecord->map.buffer length:self->requestRecord->map.length encoding:NSUTF8StringEncoding];
+    [self.rawRequestText setString:contents];
 
     //Get the response
     filePath = [NSString stringWithFormat:@"%s/%@.res",
@@ -157,7 +149,15 @@ static void on_end_request(ProxyServer *p, Request *req) {
     
     HttpRequest *req = [self.requestList objectAtIndex:pos];
     
-    [self showRequestDetails: req];
+    int status = proxyServerLoadRequest(self->proxyServer,
+                [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
+                self->requestRecord);
+    if (status < 0) {
+        NSLog(@"Failed to load request.");
+    } else {
+        [self showRequestDetails: req];
+    }
+    
 }
 
 - (IBAction)stopServer:(id)sender {
@@ -179,5 +179,19 @@ static void on_end_request(ProxyServer *p, Request *req) {
     
     [self.enableTraceMenuItem setState:newState];
     
+}
+
+- (IBAction)deleteRequest:(id)sender {
+    long pos = [self.requestTableView selectedRow];
+    
+    if (pos < 0) {
+        return;
+    }
+    
+    HttpRequest *req = [self.requestList objectAtIndex:pos];
+
+}
+
+- (IBAction)deleteAllRequests:(id)sender {
 }
 @end
