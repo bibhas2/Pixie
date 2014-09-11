@@ -564,6 +564,10 @@ static void output_headers(ProxyServer *p, Request *req) {
 
 		if (status < 0) {
 			_info("Failed to connect to server. Disconnecting.");
+			//Set the response status message
+			req->responseStatusMessage->length = 0;
+			stringAppendCString(req->responseStatusMessage,
+				"Failed to connect to server.");
 			/*
 			 * Since the request can not be written to the server, we
 			 * must manually save it in the request file. Otherwise, the 
@@ -796,6 +800,10 @@ int handle_server_read(ProxyServer *p, int position) {
 		_info("SOL_SOCKET: %d", valopt);
 		if (valopt) {
 			//Connection failed
+			//Set the response status message
+			req->responseStatusMessage->length = 0;
+			stringAppendCString(req->responseStatusMessage,
+				"Failed to connect to server.");
 			shutdown_channel(p, req);
 			DIE(p, -1, "Failed to connect to server.");
 		}
@@ -1083,7 +1091,7 @@ int server_loop(ProxyServer *p) {
 					handle_client_read(p, i);
 				}
 				/*
-				 * We need to try to write a server first before we try to read
+				 * We need to try to write to a server first before we try to read
 				 * to catch any asynch connection error. If we read first,
 				 * system seems to be overwriting the connection error and we 
 				 * can't detect error using getsockopt(SO_ERROR) any more.
