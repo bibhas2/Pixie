@@ -10,6 +10,8 @@ typedef struct _RequestRecord {
 	String *protocol;
 	String *path;
 	String *queryString;
+	Array *headerNames;
+	Array *headerValues;
 	Array *parameterNames;
 	Array *parameterValues;
 	Buffer headerBuffer;

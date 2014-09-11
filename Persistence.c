@@ -23,6 +23,9 @@
 #define PARSE_HEADER_VALUE 6
 #define PARSE_DONE 7
 
+#define FORM_ENC "application/x-www-form-urlencoded"
+#define CONTENT_TYPE "Content-Type"
+
 RequestRecord *newRequestRecord() {
 	RequestRecord *rec = calloc(1, sizeof(RequestRecord));
 
@@ -33,6 +36,8 @@ RequestRecord *newRequestRecord() {
 	rec->path = newString();
 	rec->queryString = newString();
 
+	rec->headerNames = newArray(10);
+	rec->headerValues = newArray(10);
 	rec->parameterNames = newArray(10);
 	rec->parameterValues = newArray(10);
 
@@ -49,6 +54,18 @@ void reset_request_record(RequestRecord *rec) {
 	rec->path->length = 0;
 	rec->queryString->length = 0;
 
+	//Delete all header strings
+	for (size_t i = 0; i < rec->headerNames->length; ++i) {
+		deleteString(arrayGet(rec->headerNames, i));
+		arraySet(rec->headerNames, i, NULL);
+	}
+	for (size_t i = 0; i < rec->headerValues->length; ++i) {
+		deleteString(arrayGet(rec->headerValues, i));
+		arraySet(rec->headerValues, i, NULL);
+	}
+	rec->headerNames->length = 0;
+	rec->headerValues->length = 0;
+
 	//Delete all parameter strings
 	for (size_t i = 0; i < rec->parameterNames->length; ++i) {
 		deleteString(arrayGet(rec->parameterNames, i));
@@ -58,7 +75,6 @@ void reset_request_record(RequestRecord *rec) {
 		deleteString(arrayGet(rec->parameterValues, i));
 		arraySet(rec->parameterValues, i, NULL);
 	}
-
 	rec->parameterNames->length = 0;
 	rec->parameterValues->length = 0;
 
@@ -84,8 +100,83 @@ void deleteRequestRecord(RequestRecord *rec) {
 	deleteString(rec->path);
 	deleteString(rec->queryString);
 
+	deleteArray(rec->headerNames);
+	deleteArray(rec->headerValues);
 	deleteArray(rec->parameterNames);
 	deleteArray(rec->parameterValues);
+}
+
+
+static void parse_url_params(const char *buffer, size_t length, 
+	Array *names, Array *values) {
+
+	int is_name = 1;
+	String *name = NULL, *value = NULL;
+
+	for (size_t i = 0; i < length; ++i) {
+		char ch = buffer[i];
+
+		if (is_name == 1) {
+			if (name == NULL) {
+				name = newString();
+			}
+			if (ch == '=') {
+				is_name = 0;
+				arrayAdd(names, name);
+				name = NULL;
+
+				continue;
+			}
+			if (ch == '&') {
+				//Empty value
+				is_name = 1;
+				arrayAdd(names, name);
+				arrayAdd(values, newString());
+				name = NULL;
+
+				continue;
+			}
+			stringAppendChar(name, ch);
+			continue;
+		}
+		if (is_name == 0) {
+			if (value == NULL) {
+				value = newString();
+			}
+
+			if (ch == '&') {
+				is_name = 1;
+				arrayAdd(values, value);
+				value = NULL;
+
+				continue;
+			}
+			stringAppendChar(value, ch);
+			continue;
+		}
+	}
+	if (is_name == 1 && name != NULL) {
+		//Query ended with a name
+		arrayAdd(names, name);
+		arrayAdd(values, newString());
+	} else if (is_name == 0 && value != NULL) {
+		//Query ended with a value
+		arrayAdd(values, value);
+	} else if (is_name == 0 && value == NULL) {
+		//Query ended with an empty value
+		arrayAdd(values, newString());
+	}
+}
+
+static String *get_header_value(const char *name, RequestRecord *rec) {
+	for (size_t i = 0; i < rec->headerNames->length; ++i) {
+		String *thisName = arrayGet(rec->headerNames, i);
+		if (strncmp(name, thisName->buffer, thisName->length) == 0) {
+			return arrayGet(rec->headerValues, i);
+		}
+	}
+
+	return NULL;
 }
 
 int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
@@ -118,7 +209,9 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 	}
 
 	//We are good to go. Start parsing.
+	String *str = newString();
 	int state = PARSE_METHOD;
+	int skip_space = 1;
 	for (size_t i = 0; i < rec->map.length; ++i) {
 		char ch = rec->map.buffer[i];
 
@@ -177,7 +270,11 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 		}
 		if (state == PARSE_HEADER_NAME) {
 			if (ch == ':') {
+				arrayAdd(rec->headerNames, 
+					newStringWithString(str));
+				str->length = 0;
 				state = PARSE_HEADER_VALUE;
+				skip_space = 1;
 				continue;
 			}
 			if (ch == '\n') {
@@ -195,19 +292,48 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 				//End parsing for now
 				break;
 			}
+			stringAppendChar(str, ch);
 			continue;
 		}
 		if (state == PARSE_HEADER_VALUE) {
 			if (ch == '\n') {
+				arrayAdd(rec->headerValues, 
+					newStringWithString(str));
+				str->length = 0;
 				state = PARSE_HEADER_NAME;
 				continue;
 			}
+			if (skip_space && ch == ' ') {
+				//Skip leading space.
+				continue;
+			}
+			skip_space = 0;
+			stringAppendChar(str, ch);
 			continue;
 		}
 	}
+	
+	deleteString(str);
+
+	//Parse URL parameters
+	parse_url_params(rec->queryString->buffer, rec->queryString->length, 
+		rec->parameterNames, rec->parameterValues);
+
+	//If form post then parse request body for parameters
+	String *contentType = get_header_value(CONTENT_TYPE, rec);
+	if (contentType != NULL && 
+	    strncmp(FORM_ENC, contentType->buffer, contentType->length) == 0 &&
+	    rec->bodyBuffer.length > 0) {
+		parse_url_params(rec->bodyBuffer.buffer, 
+			rec->bodyBuffer.length, 
+			rec->parameterNames, 
+			rec->parameterValues);
+	}
 
 	//It is safe to close the file now. It will 
-	//closed anyway by reset method. So no biggie.
+	//closed anyway by reset method. 
+	close(rec->fd);
+	rec->fd = -1;
 
 	return 0;
 }
