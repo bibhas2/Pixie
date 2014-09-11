@@ -16,7 +16,19 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
 
     HttpRequest *r = [[HttpRequest alloc] initWithRequest:req];
     
+    NSLog(@"Request started: %@", r.uniqueId);
+
     [d performSelectorOnMainThread:@selector(addRequest:) withObject:r waitUntilDone:FALSE];
+}
+
+static void on_end_request(ProxyServer *p, Request *req) {
+    AppDelegate *d = (AppDelegate *)[NSApp delegate];
+    
+    HttpRequest *r = [[HttpRequest alloc] initWithRequest:req];
+    
+    NSLog(@"Request ended: %@", r.uniqueId);
+    
+    [d performSelectorOnMainThread:@selector(updateRequest:) withObject:r waitUntilDone:FALSE];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
@@ -25,8 +37,10 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     
     self->proxyServer = newProxyServer(9090);
     self->proxyServer->onRequestHeaderParsed = on_request_header_parsed;
+    self->proxyServer->onEndRequest = on_end_request;
     self->proxyServer->persistenceEnabled = TRUE;
     
+    //Manually update menu item states
     [[self.enableTraceMenuItem menu] setAutoenablesItems:NO];
      
     proxySetTrace(1);
@@ -35,6 +49,7 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
     proxyServerStartInBackground(self->proxyServer);    
     [self.startServerMenuItem setEnabled:FALSE];
     
+    //Disable wrapping of text.
     NSScrollView *textScrollView = [self.rawResponseText enclosingScrollView];
     NSTextContainer *textContainer = [self.rawResponseText textContainer];
     
@@ -51,6 +66,23 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
     return self.requestList.count;
+}
+
+- (void) updateRequest: (HttpRequest*) r {
+    //Search for the request by ID. Do this backwords for
+    //faster search since only newer requests are updated.
+    for (NSUInteger i = self.requestList.count; i > 0L; --i) {
+        HttpRequest* item = [self.requestList objectAtIndex:i - 1];
+        
+        if ([item.uniqueId compare:r.uniqueId] == NSOrderedSame) {
+            //Update the properties that might have changed.
+            item.statusCode = r.statusCode;
+            item.statusMessage = r.statusMessage;
+            
+            break; //End search
+        }
+    }
+    [self.requestTableView reloadData];
 }
 
 - (void) addRequest: (HttpRequest*) r {
@@ -80,6 +112,8 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
         returnValue = req.host;
     } else if ([columnIdentifer isEqualToString:@"PATH"]) {
         returnValue = req.path;
+    } else if ([columnIdentifer isEqualToString:@"STATUS"]) {
+        returnValue = req.statusMessage;
     }
     
     return returnValue;

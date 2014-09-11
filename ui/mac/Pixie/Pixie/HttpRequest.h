@@ -14,7 +14,8 @@
 @property (strong, nonatomic) NSString* method;
 @property (strong, nonatomic) NSString* host;
 @property (strong, nonatomic) NSString* path;
-@property (strong, nonatomic) NSString* status;
+@property (strong, nonatomic) NSString* statusCode;
+@property (strong, nonatomic) NSString* statusMessage;
 
 - (id) initWithRequest: (Request*) req;
 @end
