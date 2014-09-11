@@ -9,6 +9,7 @@ typedef struct _RequestRecord {
 	String *method;
 	String *protocol;
 	String *path;
+	String *queryString;
 	Array *parameterNames;
 	Array *parameterValues;
 	Buffer headerBuffer;
@@ -26,9 +27,9 @@ typedef struct _ResponseRecord {
 	Buffer bodyBuffer;	
 } ResponseRecord;
 
-RequestRecord *requestRecordNew();
+RequestRecord *newRequestRecord();
 void deleteRequestRecord(RequestRecord *rec);
-RequestRecord *responseRecordNew();
+RequestRecord *newResponseRecord();
 void deleteResponseRecord(ResponseRecord *rec);
 
 int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId, 
