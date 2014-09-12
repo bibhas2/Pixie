@@ -41,6 +41,8 @@ static void on_end_request(ProxyServer *p, Request *req) {
     self->proxyServer->persistenceEnabled = TRUE;
     
     self->requestRecord = newRequestRecord();
+    self->responseRecord = newResponseRecord();
+    
     //Manually update menu item states
     [[self.enableTraceMenuItem menu] setAutoenablesItems:NO];
      
@@ -51,6 +53,7 @@ static void on_end_request(ProxyServer *p, Request *req) {
     [self.startServerMenuItem setEnabled:FALSE];
     
     //Disable wrapping of text.
+    /*
     NSScrollView *textScrollView = [self.rawResponseText enclosingScrollView];
     NSTextContainer *textContainer = [self.rawResponseText textContainer];
     
@@ -58,11 +61,19 @@ static void on_end_request(ProxyServer *p, Request *req) {
     [textContainer setContainerSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)];
     [textContainer setWidthTracksTextView: NO];
     [self.rawResponseText setHorizontallyResizable: YES];
+     */
+    NSTextView *theTextView = self.rawResponseText;
+    [[theTextView enclosingScrollView] setHasHorizontalScroller:YES];
+    [theTextView setHorizontallyResizable:YES];
+    [theTextView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+    [[theTextView textContainer] setContainerSize:NSMakeSize(FLT_MAX, FLT_MAX)];
+    [[theTextView textContainer] setWidthTracksTextView:NO];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
     proxyServerStop(self->proxyServer);
     deleteRequestRecord(self->requestRecord);
+    deleteResponseRecord(self->responseRecord);
     deleteProxyServer(self->proxyServer);
 }
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
@@ -120,24 +131,37 @@ static void on_end_request(ProxyServer *p, Request *req) {
     return returnValue;
 }
 
+/*
+ * Convert UTF-8 buffer to NSString
+ */
+static NSString *bufferToString(Buffer *buffer) {
+    return [[NSString alloc] initWithBytes:buffer->buffer
+                                    length:buffer->length
+                                  encoding:NSUTF8StringEncoding];
+}
+
 - (void) showRequestDetails: (HttpRequest*) req {
-    NSString *contents, *filePath;
-    NSError *error;
+    int status = proxyServerLoadRequest(self->proxyServer,
+                                        [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
+                                        self->requestRecord);
+    if (status < 0) {
+        NSLog(@"Failed to load request.");
+    }
+    status = proxyServerLoadResponse(self->proxyServer,
+                                     [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
+                                     self->responseRecord);
+    if (status < 0) {
+        NSLog(@"Failed to load response.");
+    }
     
-    contents = [[NSString alloc] initWithBytes:self->requestRecord->map.buffer length:self->requestRecord->map.length encoding:NSUTF8StringEncoding];
+    NSString *contents;
+    
+    contents = bufferToString(&(self->requestRecord->map));
     [self.rawRequestText setString:contents];
 
     //Get the response
-    filePath = [NSString stringWithFormat:@"%s/%@.res",
-                stringAsCString(self->proxyServer->persistenceFolder),
-                req.uniqueId];
-    contents = [NSString stringWithContentsOfFile:filePath encoding: NSUTF8StringEncoding error:&error];
-    if (error == NULL) {
-        [self.rawResponseText setString:contents];
-    } else {
-        NSLog(@"Failed to load file: %@", filePath);
-        [self.rawResponseText setString: @""];
-    }
+    contents = bufferToString(&(self->responseRecord->map));
+    [self.rawResponseText setString:contents];
 }
 
 - (void)tableViewSelectionDidChange:(NSNotification *) notification {
@@ -149,15 +173,7 @@ static void on_end_request(ProxyServer *p, Request *req) {
     
     HttpRequest *req = [self.requestList objectAtIndex:pos];
     
-    int status = proxyServerLoadRequest(self->proxyServer,
-                [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
-                self->requestRecord);
-    if (status < 0) {
-        NSLog(@"Failed to load request.");
-    } else {
-        [self showRequestDetails: req];
-    }
-    
+    [self showRequestDetails:req];
 }
 
 - (IBAction)stopServer:(id)sender {

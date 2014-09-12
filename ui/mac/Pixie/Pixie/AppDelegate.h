@@ -13,6 +13,7 @@
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate> {
     ProxyServer *proxyServer;
     RequestRecord *requestRecord;
+    ResponseRecord *responseRecord;
 }
 
 @property (strong, nonatomic) NSMutableArray *requestList;
