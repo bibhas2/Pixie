@@ -25,13 +25,15 @@ typedef struct _ResponseRecord {
 	//Public stuff
 	String *statusCode;
 	String *statusMessage;
+	Array *headerNames;
+	Array *headerValues;
 	Buffer headerBuffer;
 	Buffer bodyBuffer;	
 } ResponseRecord;
 
 RequestRecord *newRequestRecord();
 void deleteRequestRecord(RequestRecord *rec);
-RequestRecord *newResponseRecord();
+ResponseRecord *newResponseRecord();
 void deleteResponseRecord(ResponseRecord *rec);
 
 int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId, 

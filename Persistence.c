@@ -21,7 +21,9 @@
 #define PARSE_QUERY_STRING 4
 #define PARSE_HEADER_NAME 5
 #define PARSE_HEADER_VALUE 6
-#define PARSE_DONE 7
+#define PARSE_STATUS_CODE 7
+#define PARSE_STATUS_MESSAGE 8
+#define PARSE_DONE 9
 
 #define FORM_ENC "application/x-www-form-urlencoded"
 #define CONTENT_TYPE "Content-Type"
@@ -40,6 +42,20 @@ RequestRecord *newRequestRecord() {
 	rec->headerValues = newArray(10);
 	rec->parameterNames = newArray(10);
 	rec->parameterValues = newArray(10);
+
+	rec->fd = -1;
+
+	return rec;
+}
+
+ResponseRecord *newResponseRecord() {
+	ResponseRecord *rec = calloc(1, sizeof(ResponseRecord));
+
+	rec->statusCode = newString();
+	rec->statusMessage = newString();
+
+	rec->headerNames = newArray(10);
+	rec->headerValues = newArray(10);
 
 	rec->fd = -1;
 
@@ -84,10 +100,44 @@ void reset_request_record(RequestRecord *rec) {
 		rec->map.buffer = NULL;
 		rec->map.length = 0;
 	}
+
 	if (rec->fd >= 0) {
 		close(rec->fd);	
 		rec->fd = -1;
 	}
+
+	rec->headerBuffer.length = 0;
+	rec->bodyBuffer.length = 0;
+}
+
+void reset_response_record(ResponseRecord *rec) {
+	rec->statusCode->length = 0;
+	rec->statusMessage->length = 0;
+
+	//Delete all header strings
+	for (size_t i = 0; i < rec->headerNames->length; ++i) {
+		deleteString(arrayGet(rec->headerNames, i));
+		arraySet(rec->headerNames, i, NULL);
+	}
+	for (size_t i = 0; i < rec->headerValues->length; ++i) {
+		deleteString(arrayGet(rec->headerValues, i));
+		arraySet(rec->headerValues, i, NULL);
+	}
+	rec->headerNames->length = 0;
+	rec->headerValues->length = 0;
+
+	if (rec->map.buffer != NULL && rec->map.buffer != MAP_FAILED) {
+		munmap(rec->map.buffer, rec->map.length);
+
+		rec->map.buffer = NULL;
+		rec->map.length = 0;
+	}
+	if (rec->fd >= 0) {
+		close(rec->fd);	
+		rec->fd = -1;
+	}
+	rec->headerBuffer.length = 0;
+	rec->bodyBuffer.length = 0;
 }
 
 void deleteRequestRecord(RequestRecord *rec) {
@@ -104,8 +154,21 @@ void deleteRequestRecord(RequestRecord *rec) {
 	deleteArray(rec->headerValues);
 	deleteArray(rec->parameterNames);
 	deleteArray(rec->parameterValues);
+
+	free(rec);
 }
 
+void deleteResponseRecord(ResponseRecord *rec) {
+	reset_response_record(rec); 
+
+	deleteString(rec->statusCode);
+	deleteString(rec->statusMessage);
+
+	deleteArray(rec->headerNames);
+	deleteArray(rec->headerValues);
+
+	free(rec);
+}
 
 static void parse_url_params(const char *buffer, size_t length, 
 	Array *names, Array *values) {
@@ -326,6 +389,123 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 			rec->parameterNames, 
 			rec->parameterValues);
 	}
+
+	//It is safe to close the file now. It will 
+	//closed anyway by reset method. 
+	close(rec->fd);
+	rec->fd = -1;
+
+	return 0;
+}
+
+int proxyServerLoadResponse(ProxyServer *p, const char *uniqueId,
+        ResponseRecord *rec) {
+
+	reset_response_record(rec);
+
+	char file_name[512];
+	struct stat stat_buf;
+	snprintf(file_name, sizeof(file_name), "%s/%s.res",
+		stringAsCString(p->persistenceFolder), uniqueId);
+
+	rec->fd = open(file_name, O_RDONLY);
+	DIE(p, rec->fd, "Failed to open response file.");
+
+	int status = fstat(rec->fd, &stat_buf);
+	DIE(p, status, "Failed to get response file size.");
+
+	rec->map.length = stat_buf.st_size; //Save the size
+
+	//If file size is 0 then just return
+	if (rec->map.length == 0) {
+		return 0;
+	}
+
+	rec->map.buffer = mmap(NULL, stat_buf.st_size, PROT_READ,
+		MAP_SHARED, rec->fd, 0);
+	if (rec->map.buffer == MAP_FAILED) {
+		DIE(p, -1, "Failed to map response file.");
+	}
+
+	//We are good to go. Start parsing header.
+	String *str = newString();
+	int state = PARSE_PROTOCOL_VERSION;
+	for (size_t i = 0; i < rec->map.length; ++i) {
+		char ch = rec->map.buffer[i];
+
+		//printf("[%c %d]", ch, state);
+		if (ch == '\r') {
+			continue; //Ignored
+		}
+
+		if (state == PARSE_PROTOCOL_VERSION) {
+			if (ch == ' ') {
+				state = PARSE_STATUS_CODE;
+				continue;
+			}
+			//Don't store version
+			continue;
+		}
+		if (state == PARSE_STATUS_CODE) {
+			if (ch == ' ') {
+				state = PARSE_STATUS_MESSAGE;
+				continue;
+			}
+			stringAppendChar(rec->statusCode, ch);
+			continue;
+		}
+		if (state == PARSE_STATUS_MESSAGE) {
+			if (ch == '\n') {
+				state = PARSE_HEADER_NAME;
+				continue;
+			}
+			stringAppendChar(rec->statusMessage, ch);
+			continue;
+		}
+		if (state == PARSE_HEADER_NAME) {
+			if (ch == ':') {
+				arrayAdd(rec->headerNames, 
+					newStringWithString(str));
+				str->length = 0;
+				state = PARSE_HEADER_VALUE;
+				continue;
+			}
+			if (ch == '\n') {
+				//End of request headers
+				rec->headerBuffer.buffer = 
+					rec->map.buffer;
+				rec->headerBuffer.length = i + 1;
+
+				rec->bodyBuffer.buffer =
+					rec->map.buffer + i + 1;
+				rec->bodyBuffer.length = 
+					rec->map.length - 
+					rec->headerBuffer.length;
+				
+				//End parsing for now
+				break;
+			}
+			stringAppendChar(str, ch);
+			continue;
+		}
+		if (state == PARSE_HEADER_VALUE) {
+			if (ch == '\n') {
+				arrayAdd(rec->headerValues, 
+					newStringWithString(str));
+				str->length = 0;
+				state = PARSE_HEADER_NAME;
+				continue;
+			}
+			if ((str->length == 0) && ch == ' ') {
+				//Skip leading space.
+				continue;
+			}
+			stringAppendChar(str, ch);
+			continue;
+		}
+	}
+	
+	deleteString(str);
 
 	//It is safe to close the file now. It will 
 	//closed anyway by reset method. 
