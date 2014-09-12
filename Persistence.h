@@ -40,3 +40,6 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 	RequestRecord *rec);
 int proxyServerLoadResponse(ProxyServer *p, const char *uniqueId, 
 	ResponseRecord *rec);
+int proxyServerResetRecords(ProxyServer *p, RequestRecord *reqRec, 
+	ResponseRecord *resRec);
+int proxyServerDeleteRecord(ProxyServer *p, const char *uniqueId);

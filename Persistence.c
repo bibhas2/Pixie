@@ -514,3 +514,37 @@ int proxyServerLoadResponse(ProxyServer *p, const char *uniqueId,
 
 	return 0;
 }
+
+int proxyServerResetRecords(ProxyServer *p, RequestRecord *reqRec, 
+        ResponseRecord *resRec) {
+	if (reqRec != NULL) {
+		reset_request_record(reqRec);
+	}
+	if (resRec != NULL) {
+		reset_response_record(resRec);
+	}
+
+	return 0;
+}
+
+int proxyServerDeleteRecord(ProxyServer *p, const char *uniqueId) {
+	int status, res = 0;
+	char file_name[512];
+
+	snprintf(file_name, sizeof(file_name), "%s/%s.meta",
+		stringAsCString(p->persistenceFolder), uniqueId);
+	status = unlink(file_name);
+	res = status < 0 ? status : res;
+
+	snprintf(file_name, sizeof(file_name), "%s/%s.res",
+		stringAsCString(p->persistenceFolder), uniqueId);
+	status = unlink(file_name);
+	res = status < 0 ? status : res;
+
+	snprintf(file_name, sizeof(file_name), "%s/%s.req",
+		stringAsCString(p->persistenceFolder), uniqueId);
+	status = unlink(file_name);
+	res = status < 0 ? status : res;
+
+	return res;
+}
