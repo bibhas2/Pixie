@@ -141,14 +141,15 @@ static NSString *bufferToString(Buffer *buffer) {
 }
 
 - (void) showRequestDetails: (HttpRequest*) req {
+    const char *uniqueId = [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding];
     int status = proxyServerLoadRequest(self->proxyServer,
-                                        [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
+                                        uniqueId,
                                         self->requestRecord);
     if (status < 0) {
         NSLog(@"Failed to load request.");
     }
     status = proxyServerLoadResponse(self->proxyServer,
-                                     [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding],
+                                     uniqueId,
                                      self->responseRecord);
     if (status < 0) {
         NSLog(@"Failed to load response.");
@@ -162,6 +163,9 @@ static NSString *bufferToString(Buffer *buffer) {
     //Get the response
     contents = bufferToString(&(self->responseRecord->map));
     [self.rawResponseText setString:contents];
+    
+    //Free up resources that we don't need.
+    proxyServerResetRecords(self->proxyServer, self->requestRecord, self->responseRecord);
 }
 
 - (void)tableViewSelectionDidChange:(NSNotification *) notification {
@@ -205,9 +209,31 @@ static NSString *bufferToString(Buffer *buffer) {
     }
     
     HttpRequest *req = [self.requestList objectAtIndex:pos];
+    const char *uniqueId = [req.uniqueId cStringUsingEncoding:NSUTF8StringEncoding];
+    proxyServerDeleteRecord(self->proxyServer, uniqueId);
+    [self.requestList removeObjectAtIndex:pos];
+    
+    [self.requestTableView reloadData];
 
+    //Clear request details
+    [self.rawRequestText setString:@""];
+    [self.rawResponseText setString:@""];
 }
 
 - (IBAction)deleteAllRequests:(id)sender {
+    //Delete all requests. Do this backwords for
+    //faster deletion.
+    for (NSUInteger i = self.requestList.count; i > 0L; --i) {
+        HttpRequest* item = [self.requestList objectAtIndex:i - 1];
+        const char *uniqueId = [item.uniqueId cStringUsingEncoding:NSUTF8StringEncoding];
+        proxyServerDeleteRecord(self->proxyServer, uniqueId);
+    }
+    [self.requestList removeAllObjects];
+    [self.requestTableView reloadData];
+    
+    //Clear request details
+    [self.rawRequestText setString:@""];
+    [self.rawResponseText setString:@""];
 }
+
 @end

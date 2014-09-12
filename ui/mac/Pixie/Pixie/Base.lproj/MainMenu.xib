@@ -73,9 +73,9 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="Edit" id="5QF-Oa-p0T">
+                <menuItem title="Edit " id="5QF-Oa-p0T">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Edit" id="W48-6f-4Dl">
+                    <menu key="submenu" title="Edit " id="W48-6f-4Dl">
                         <items>
                             <menuItem title="Delete request" id="dRJ-4n-Yzg">
                                 <string key="keyEquivalent" base64-UTF8="YES">
