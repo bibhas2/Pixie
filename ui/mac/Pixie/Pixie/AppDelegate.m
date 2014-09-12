@@ -52,23 +52,12 @@ static void on_end_request(ProxyServer *p, Request *req) {
     proxyServerStartInBackground(self->proxyServer);    
     [self.startServerMenuItem setEnabled:FALSE];
     
-    //Disable wrapping of text.
-    /*
-    NSScrollView *textScrollView = [self.rawResponseText enclosingScrollView];
-    NSTextContainer *textContainer = [self.rawResponseText textContainer];
+    self.rawReqTextCtrl = [[PlainTextViewController alloc] init];
+    self.rawRequestTab.view = self.rawReqTextCtrl.view;
     
-    [textScrollView setHasHorizontalScroller:YES];
-    [textContainer setContainerSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)];
-    [textContainer setWidthTracksTextView: NO];
-    [self.rawResponseText setHorizontallyResizable: YES];
-     */
-    NSTextView *theTextView = self.rawResponseText;
-    [[theTextView enclosingScrollView] setHasHorizontalScroller:YES];
-    [theTextView setHorizontallyResizable:YES];
-    [theTextView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
-    [[theTextView textContainer] setContainerSize:NSMakeSize(FLT_MAX, FLT_MAX)];
-    [[theTextView textContainer] setWidthTracksTextView:NO];
-}
+    self.rawResTextCtrl = [[PlainTextViewController alloc] init];
+    self.rawResponseTab.view = self.rawResTextCtrl.view;
+ }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
     proxyServerStop(self->proxyServer);
@@ -154,15 +143,12 @@ static NSString *bufferToString(Buffer *buffer) {
     if (status < 0) {
         NSLog(@"Failed to load response.");
     }
-    
-    NSString *contents;
-    
-    contents = bufferToString(&(self->requestRecord->map));
-    [self.rawRequestText setString:contents];
 
-    //Get the response
-    contents = bufferToString(&(self->responseRecord->map));
-    [self.rawResponseText setString:contents];
+    //Show the request
+    [self.rawReqTextCtrl setBuffer: &(self->requestRecord->map)];
+
+    //Show the response
+    [self.rawResTextCtrl setBuffer: &(self->responseRecord->map)];
     
     //Free up resources that we don't need.
     proxyServerResetRecords(self->proxyServer, self->requestRecord, self->responseRecord);
@@ -216,8 +202,7 @@ static NSString *bufferToString(Buffer *buffer) {
     [self.requestTableView reloadData];
 
     //Clear request details
-    [self.rawRequestText setString:@""];
-    [self.rawResponseText setString:@""];
+    [self clearRequestDetails];
 }
 
 - (IBAction)deleteAllRequests:(id)sender {
@@ -232,8 +217,11 @@ static NSString *bufferToString(Buffer *buffer) {
     [self.requestTableView reloadData];
     
     //Clear request details
-    [self.rawRequestText setString:@""];
-    [self.rawResponseText setString:@""];
+    [self clearRequestDetails];
 }
 
+- (void) clearRequestDetails {
+    [self.rawReqTextCtrl setBuffer: NULL];
+    [self.rawResTextCtrl setBuffer: NULL];
+}
 @end
