@@ -211,7 +211,6 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 	//We are good to go. Start parsing.
 	String *str = newString();
 	int state = PARSE_METHOD;
-	int skip_space = 1;
 	for (size_t i = 0; i < rec->map.length; ++i) {
 		char ch = rec->map.buffer[i];
 
@@ -274,7 +273,6 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 					newStringWithString(str));
 				str->length = 0;
 				state = PARSE_HEADER_VALUE;
-				skip_space = 1;
 				continue;
 			}
 			if (ch == '\n') {
@@ -303,11 +301,10 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 				state = PARSE_HEADER_NAME;
 				continue;
 			}
-			if (skip_space && ch == ' ') {
+			if ((str->length == 0) && ch == ' ') {
 				//Skip leading space.
 				continue;
 			}
-			skip_space = 0;
 			stringAppendChar(str, ch);
 			continue;
 		}

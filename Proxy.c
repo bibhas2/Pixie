@@ -529,7 +529,7 @@ static void output_headers(ProxyServer *p, Request *req) {
 
 		bufferAppendBytes(req->requestBuffer,
 			name->buffer, name->length);
-		bufferAppendBytes(req->requestBuffer, ":", 1);
+		bufferAppendBytes(req->requestBuffer, ": ", 2);
 		bufferAppendBytes(req->requestBuffer,
 			value->buffer, value->length);
 		bufferAppendBytes(req->requestBuffer, newLine, 2);
@@ -671,6 +671,11 @@ void read_request_header(ProxyServer *p, Request *req) {
 			}
 			if (req->headerValue == NULL) {
 				req->headerValue = newString();
+			}
+			if ((req->headerValue->length == 0) &&
+				ch == ' ') {
+				//Skip leading space
+				continue;
 			}
 			stringAppendChar(req->headerValue, ch);
 		}
