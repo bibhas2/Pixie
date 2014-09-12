@@ -46,6 +46,11 @@ typedef struct _Request {
 
 #define MAX_CLIENTS 256
 
+typedef enum _RunStatus {
+	STOPPED,
+	RUNNING
+} RunStatus;
+
 typedef struct _ProxyServer {
 	Request requests[MAX_CLIENTS];
 	int persistenceEnabled;
@@ -57,7 +62,7 @@ typedef struct _ProxyServer {
 
 	//Server control mechanism
 	int controlPipe[2];
-	int continueOperation;
+	RunStatus runStatus;
 
 	//Various event notification callbacks
 	void (*onError)(const char* message);

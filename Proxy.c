@@ -1046,7 +1046,7 @@ int handle_control_command(ProxyServer *p) {
 	_info("Received control command: %.*s", sz, buff);
 	if (strncmp(buff, "Q", 1) == 0) {
 		_info("Received stop control command.");
-		p->continueOperation = 0;
+		p->runStatus = STOPPED;
 	}
 
 	return 0;
@@ -1056,9 +1056,9 @@ int server_loop(ProxyServer *p) {
         fd_set readFdSet, writeFdSet;
         struct timeval timeout;
 
-	p->continueOperation = 1;
+	p->runStatus = RUNNING;
 
-        while (p->continueOperation == 1) {
+        while (p->runStatus == RUNNING) {
                 populate_fd_set(p, &readFdSet, &writeFdSet);
 
                 timeout.tv_sec = 60 * 1;
@@ -1122,6 +1122,7 @@ ProxyServer* newProxyServer(int port) {
 	p->port = port;
 	p->onError = default_on_error;
 	p->persistenceFolder = newString();
+	p->runStatus = STOPPED;
 
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
@@ -1202,6 +1203,10 @@ static int configure_persistence_folder(ProxyServer *p) {
 }
 
 int proxyServerStart(ProxyServer* p) {
+	if (p->runStatus == RUNNING) {
+		DIE(p, -1, "Server is already running.");
+	}
+
         int status;
 
 	//Get the folder to persist data
@@ -1263,7 +1268,7 @@ int proxyServerStart(ProxyServer* p) {
 
 	//Reset all server state
 	p->isInBackgroundMode = 0;
-	p->continueOperation = 0;
+	p->runStatus = STOPPED;
 	p->persistenceFolder->length = 0;
 
 	return 0;
@@ -1278,6 +1283,10 @@ int send_control_command(ProxyServer *p, const char *cmd, int len) {
 }
 
 int proxyServerStop(ProxyServer *p) {
+	if (p->runStatus == STOPPED) {
+		DIE(p, -1, "Server is already stopped.");
+	}
+
 	int status = send_control_command(p, "Q", 1);
 
 	if (p->isInBackgroundMode != 1) {
