@@ -16,6 +16,7 @@
                 <outlet property="enableTraceMenuItem" destination="Ow0-Hs-Ufh" id="vgM-wH-o1T"/>
                 <outlet property="rawRequestTab" destination="PXl-Vn-l8a" id="mz0-3l-fj9"/>
                 <outlet property="rawResponseTab" destination="ZwS-0j-ixf" id="VH0-ZH-q13"/>
+                <outlet property="requestParamTab" destination="pbP-G6-IYz" id="YSr-sN-PBe"/>
                 <outlet property="requestTableView" destination="t7G-T5-KmK" id="Me5-eD-0CQ"/>
                 <outlet property="startServerMenuItem" destination="1UK-8n-QPP" id="Uku-Rc-d01"/>
                 <outlet property="stopServerMenuItem" destination="snW-S8-Cw5" id="BXq-Ae-tpP"/>

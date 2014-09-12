@@ -52,11 +52,14 @@ static void on_end_request(ProxyServer *p, Request *req) {
     proxyServerStartInBackground(self->proxyServer);    
     [self.startServerMenuItem setEnabled:FALSE];
     
-    self.rawReqTextCtrl = [[PlainTextViewController alloc] init];
+    self.rawReqTextCtrl = [[PlainTextViewController alloc] initWithNibName:@"PlainTextViewController" bundle:nil];
     self.rawRequestTab.view = self.rawReqTextCtrl.view;
     
-    self.rawResTextCtrl = [[PlainTextViewController alloc] init];
+    self.rawResTextCtrl = [[PlainTextViewController alloc] initWithNibName:@"PlainTextViewController" bundle:nil];
     self.rawResponseTab.view = self.rawResTextCtrl.view;
+    
+    self.requestParamCtrl = [[ArrayPairViewController alloc] init];
+    self.requestParamTab.view = self.requestParamCtrl.view;
  }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
@@ -146,7 +149,8 @@ static NSString *bufferToString(Buffer *buffer) {
 
     //Show the request
     [self.rawReqTextCtrl setBuffer: &(self->requestRecord->map)];
-
+    [self.requestParamCtrl setNames:self->requestRecord->parameterNames
+                             values:self->requestRecord->parameterValues];
     //Show the response
     [self.rawResTextCtrl setBuffer: &(self->responseRecord->map)];
     
@@ -223,5 +227,8 @@ static NSString *bufferToString(Buffer *buffer) {
 - (void) clearRequestDetails {
     [self.rawReqTextCtrl setBuffer: NULL];
     [self.rawResTextCtrl setBuffer: NULL];
+    [self.requestParamCtrl setNames:NULL
+                             values:NULL];
+
 }
 @end

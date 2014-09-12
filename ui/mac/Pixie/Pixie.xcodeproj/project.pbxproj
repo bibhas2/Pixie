@@ -12,6 +12,8 @@
 		A301439619B7619A007B687D /* HttpRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = A301439519B7619A007B687D /* HttpRequest.m */; };
 		A3559F2C19C34228007BCD90 /* PlainTextViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A3559F2A19C34228007BCD90 /* PlainTextViewController.m */; };
 		A3559F2D19C34228007BCD90 /* PlainTextViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = A3559F2B19C34228007BCD90 /* PlainTextViewController.xib */; };
+		A3C7043F19C3A25E006DE5E4 /* ArrayPairViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A3C7043D19C3A25E006DE5E4 /* ArrayPairViewController.m */; };
+		A3C7044019C3A25E006DE5E4 /* ArrayPairViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = A3C7043E19C3A25E006DE5E4 /* ArrayPairViewController.xib */; };
 		A3EE46F919B74C730092D3CB /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3EE46F819B74C730092D3CB /* Cocoa.framework */; };
 		A3EE470319B74C730092D3CB /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A3EE470119B74C730092D3CB /* InfoPlist.strings */; };
 		A3EE470519B74C730092D3CB /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A3EE470419B74C730092D3CB /* main.m */; };
@@ -43,6 +45,9 @@
 		A3559F2919C34228007BCD90 /* PlainTextViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlainTextViewController.h; sourceTree = "<group>"; };
 		A3559F2A19C34228007BCD90 /* PlainTextViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlainTextViewController.m; sourceTree = "<group>"; };
 		A3559F2B19C34228007BCD90 /* PlainTextViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PlainTextViewController.xib; sourceTree = "<group>"; };
+		A3C7043C19C3A25E006DE5E4 /* ArrayPairViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArrayPairViewController.h; sourceTree = "<group>"; };
+		A3C7043D19C3A25E006DE5E4 /* ArrayPairViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ArrayPairViewController.m; sourceTree = "<group>"; };
+		A3C7043E19C3A25E006DE5E4 /* ArrayPairViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ArrayPairViewController.xib; sourceTree = "<group>"; };
 		A3EE46F519B74C730092D3CB /* Pixie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pixie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3EE46F819B74C730092D3CB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		A3EE46FB19B74C730092D3CB /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -102,6 +107,9 @@
 				A3559F2919C34228007BCD90 /* PlainTextViewController.h */,
 				A3559F2A19C34228007BCD90 /* PlainTextViewController.m */,
 				A3559F2B19C34228007BCD90 /* PlainTextViewController.xib */,
+				A3C7043C19C3A25E006DE5E4 /* ArrayPairViewController.h */,
+				A3C7043D19C3A25E006DE5E4 /* ArrayPairViewController.m */,
+				A3C7043E19C3A25E006DE5E4 /* ArrayPairViewController.xib */,
 			);
 			name = Controller;
 			sourceTree = "<group>";
@@ -271,6 +279,7 @@
 				A3EE470319B74C730092D3CB /* InfoPlist.strings in Resources */,
 				A3EE471119B74C730092D3CB /* Images.xcassets in Resources */,
 				A3EE470919B74C730092D3CB /* Credits.rtf in Resources */,
+				A3C7044019C3A25E006DE5E4 /* ArrayPairViewController.xib in Resources */,
 				A3EE470F19B74C730092D3CB /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -290,6 +299,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A3C7043F19C3A25E006DE5E4 /* ArrayPairViewController.m in Sources */,
 				A3559F2C19C34228007BCD90 /* PlainTextViewController.m in Sources */,
 				A3EE470C19B74C730092D3CB /* AppDelegate.m in Sources */,
 				A301439619B7619A007B687D /* HttpRequest.m in Sources */,

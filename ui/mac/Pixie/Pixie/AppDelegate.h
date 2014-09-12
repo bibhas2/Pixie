@@ -10,6 +10,7 @@
 #import "Proxy.h"
 #import "Persistence.h"
 #import "PlainTextViewController.h"
+#import "ArrayPairViewController.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate> {
     ProxyServer *proxyServer;
@@ -18,6 +19,7 @@
 }
 @property (weak) IBOutlet NSTabViewItem *rawRequestTab;
 @property (weak) IBOutlet NSTabViewItem *rawResponseTab;
+@property (weak) IBOutlet NSTabViewItem *requestParamTab;
 
 @property (strong, nonatomic) NSMutableArray *requestList;
 @property (assign) IBOutlet NSWindow *window;
@@ -27,6 +29,7 @@
 @property (weak) IBOutlet NSMenuItem *enableTraceMenuItem;
 @property (strong) PlainTextViewController *rawReqTextCtrl;
 @property (strong) PlainTextViewController *rawResTextCtrl;
+@property (strong) ArrayPairViewController *requestParamCtrl;
 
 - (IBAction)stopServer:(id)sender;
 - (IBAction)startServer:(id)sender;
