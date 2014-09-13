@@ -234,7 +234,7 @@ static void parse_url_params(const char *buffer, size_t length,
 static String *get_header_value(const char *name, RequestRecord *rec) {
 	for (size_t i = 0; i < rec->headerNames->length; ++i) {
 		String *thisName = arrayGet(rec->headerNames, i);
-		if (strncmp(name, thisName->buffer, thisName->length) == 0) {
+		if (stringEqualsCString(thisName, name)) {
 			return arrayGet(rec->headerValues, i);
 		}
 	}
@@ -245,7 +245,7 @@ static String *get_header_value(const char *name, RequestRecord *rec) {
 String *responseRecordGetHeader(ResponseRecord *rec, const char *name) {
 	for (size_t i = 0; i < rec->headerNames->length; ++i) {
 		String *thisName = arrayGet(rec->headerNames, i);
-		if (strncmp(name, thisName->buffer, thisName->length) == 0) {
+		if (stringEqualsCString(thisName, name)) {
 			return arrayGet(rec->headerValues, i);
 		}
 	}
@@ -393,7 +393,7 @@ int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
 	//If form post then parse request body for parameters
 	String *contentType = get_header_value(CONTENT_TYPE, rec);
 	if (contentType != NULL && 
-	    strncmp(FORM_ENC, contentType->buffer, contentType->length) == 0 &&
+	    stringEqualsCString(contentType, FORM_ENC) &&
 	    rec->bodyBuffer.length > 0) {
 		parse_url_params(rec->bodyBuffer.buffer, 
 			rec->bodyBuffer.length, 
