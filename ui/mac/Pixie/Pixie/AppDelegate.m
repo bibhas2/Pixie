@@ -56,8 +56,8 @@ static void on_end_request(ProxyServer *p, Request *req) {
     self.rawRequestTab.view = self.rawReqTextCtrl.view;
     
     self.rawResTextCtrl = [[PlainTextViewController alloc] initWithNibName:@"PlainTextViewController" bundle:nil];
-    self.rawResponseTab.view = self.rawResTextCtrl.view;
-    
+    self.rawResBinCtrl = [[BinaryDataViewController alloc]
+                          initWithProxyServer:self->proxyServer];
     self.requestParamCtrl = [[ArrayPairViewController alloc] init];
     self.requestParamTab.view = self.requestParamCtrl.view;
  }
@@ -152,10 +152,19 @@ static NSString *bufferToString(Buffer *buffer) {
     [self.requestParamCtrl setNames:self->requestRecord->parameterNames
                              values:self->requestRecord->parameterValues];
     //Show the response
-    [self.rawResTextCtrl setBuffer: &(self->responseRecord->map)];
-    
-    //Free up resources that we don't need.
-    proxyServerResetRecords(self->proxyServer, self->requestRecord, self->responseRecord);
+    BOOL isText = FALSE;
+    String *type = responseRecordGetHeader(self->responseRecord, "Content-Type");
+    if (type != NULL) {
+        //Does content type start with "text"?
+        isText = strnstr(type->buffer, "text/", type->length) == type->buffer;
+    }
+    if (isText) {
+        self.rawResponseTab.view = self.rawResTextCtrl.view;
+        [self.rawResTextCtrl setBuffer: &(self->responseRecord->map)];
+    } else {
+        self.rawResponseTab.view = self.rawResBinCtrl.view;
+        [self.rawResBinCtrl setHeaderBuffer:&(self->responseRecord->headerBuffer) bodyBuffer:&(self->responseRecord->bodyBuffer) ];
+    }
 }
 
 - (void)tableViewSelectionDidChange:(NSNotification *) notification {
@@ -229,6 +238,5 @@ static NSString *bufferToString(Buffer *buffer) {
     [self.rawResTextCtrl setBuffer: NULL];
     [self.requestParamCtrl setNames:NULL
                              values:NULL];
-
 }
 @end

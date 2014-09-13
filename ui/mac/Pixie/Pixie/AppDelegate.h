@@ -11,6 +11,7 @@
 #import "Persistence.h"
 #import "PlainTextViewController.h"
 #import "ArrayPairViewController.h"
+#import "BinaryDataViewController.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate> {
     ProxyServer *proxyServer;
@@ -30,6 +31,7 @@
 @property (strong) PlainTextViewController *rawReqTextCtrl;
 @property (strong) PlainTextViewController *rawResTextCtrl;
 @property (strong) ArrayPairViewController *requestParamCtrl;
+@property (strong) BinaryDataViewController *rawResBinCtrl;
 
 - (IBAction)stopServer:(id)sender;
 - (IBAction)startServer:(id)sender;

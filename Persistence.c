@@ -242,6 +242,17 @@ static String *get_header_value(const char *name, RequestRecord *rec) {
 	return NULL;
 }
 
+String *responseRecordGetHeader(ResponseRecord *rec, const char *name) {
+	for (size_t i = 0; i < rec->headerNames->length; ++i) {
+		String *thisName = arrayGet(rec->headerNames, i);
+		if (strncmp(name, thisName->buffer, thisName->length) == 0) {
+			return arrayGet(rec->headerValues, i);
+		}
+	}
+
+	return NULL;
+}
+
 int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId,
         RequestRecord *rec) {
 
@@ -547,4 +558,24 @@ int proxyServerDeleteRecord(ProxyServer *p, const char *uniqueId) {
 	res = status < 0 ? status : res;
 
 	return res;
+}
+
+int proxyServerSaveBuffer(ProxyServer *p, 
+	const char *fileName, 
+	Buffer *buffer) {
+
+	FILE *file = fopen(fileName, "w");
+
+	if (file == NULL) {
+		DIE(p, -1, "Failed to save buffer.");
+	}
+
+	size_t sz = fwrite(buffer->buffer, sizeof(char), buffer->length, file);
+	fclose(file);
+
+	if (sz != buffer->length) {
+		DIE(p, -1, "Failed to save buffer properly.");
+	}
+
+	return 0;
 }

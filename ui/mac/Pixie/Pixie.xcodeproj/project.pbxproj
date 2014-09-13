@@ -10,6 +10,8 @@
 		A301439019B75B6A007B687D /* libcute.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A301438F19B75B6A007B687D /* libcute.a */; };
 		A301439219B75BB2007B687D /* libpixie.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A301439119B75BB2007B687D /* libpixie.a */; };
 		A301439619B7619A007B687D /* HttpRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = A301439519B7619A007B687D /* HttpRequest.m */; };
+		A35177F219C3B84E00BCEC86 /* BinaryDataViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A35177F019C3B84E00BCEC86 /* BinaryDataViewController.m */; };
+		A35177F319C3B84E00BCEC86 /* BinaryDataViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = A35177F119C3B84E00BCEC86 /* BinaryDataViewController.xib */; };
 		A3559F2C19C34228007BCD90 /* PlainTextViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A3559F2A19C34228007BCD90 /* PlainTextViewController.m */; };
 		A3559F2D19C34228007BCD90 /* PlainTextViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = A3559F2B19C34228007BCD90 /* PlainTextViewController.xib */; };
 		A3C7043F19C3A25E006DE5E4 /* ArrayPairViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A3C7043D19C3A25E006DE5E4 /* ArrayPairViewController.m */; };
@@ -42,6 +44,9 @@
 		A301439119B75BB2007B687D /* libpixie.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpixie.a; path = ../../../libpixie.a; sourceTree = "<group>"; };
 		A301439419B7619A007B687D /* HttpRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HttpRequest.h; sourceTree = "<group>"; };
 		A301439519B7619A007B687D /* HttpRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpRequest.m; sourceTree = "<group>"; };
+		A35177EF19C3B84E00BCEC86 /* BinaryDataViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BinaryDataViewController.h; sourceTree = "<group>"; };
+		A35177F019C3B84E00BCEC86 /* BinaryDataViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BinaryDataViewController.m; sourceTree = "<group>"; };
+		A35177F119C3B84E00BCEC86 /* BinaryDataViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BinaryDataViewController.xib; sourceTree = "<group>"; };
 		A3559F2919C34228007BCD90 /* PlainTextViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlainTextViewController.h; sourceTree = "<group>"; };
 		A3559F2A19C34228007BCD90 /* PlainTextViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlainTextViewController.m; sourceTree = "<group>"; };
 		A3559F2B19C34228007BCD90 /* PlainTextViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PlainTextViewController.xib; sourceTree = "<group>"; };
@@ -110,6 +115,9 @@
 				A3C7043C19C3A25E006DE5E4 /* ArrayPairViewController.h */,
 				A3C7043D19C3A25E006DE5E4 /* ArrayPairViewController.m */,
 				A3C7043E19C3A25E006DE5E4 /* ArrayPairViewController.xib */,
+				A35177EF19C3B84E00BCEC86 /* BinaryDataViewController.h */,
+				A35177F019C3B84E00BCEC86 /* BinaryDataViewController.m */,
+				A35177F119C3B84E00BCEC86 /* BinaryDataViewController.xib */,
 			);
 			name = Controller;
 			sourceTree = "<group>";
@@ -276,6 +284,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A3559F2D19C34228007BCD90 /* PlainTextViewController.xib in Resources */,
+				A35177F319C3B84E00BCEC86 /* BinaryDataViewController.xib in Resources */,
 				A3EE470319B74C730092D3CB /* InfoPlist.strings in Resources */,
 				A3EE471119B74C730092D3CB /* Images.xcassets in Resources */,
 				A3EE470919B74C730092D3CB /* Credits.rtf in Resources */,
@@ -300,6 +309,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A3C7043F19C3A25E006DE5E4 /* ArrayPairViewController.m in Sources */,
+				A35177F219C3B84E00BCEC86 /* BinaryDataViewController.m in Sources */,
 				A3559F2C19C34228007BCD90 /* PlainTextViewController.m in Sources */,
 				A3EE470C19B74C730092D3CB /* AppDelegate.m in Sources */,
 				A301439619B7619A007B687D /* HttpRequest.m in Sources */,
