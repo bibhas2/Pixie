@@ -155,10 +155,24 @@ static NSString *bufferToString(Buffer *buffer) {
     BOOL isText = FALSE;
     String *type = responseRecordGetHeader(self->responseRecord, "Content-Type");
     if (type != NULL) {
+        char *textTypes[] = {"text/", "application/json", "application/xml", "application/javascript"};
+        size_t len = sizeof(textTypes)/sizeof(char*);
         //Does content type start with "text"?
-        isText = strnstr(type->buffer, "text/", type->length) == type->buffer;
+        for (size_t i = 0; i < len; ++i) {
+            isText = stringStartsWithCString(type, textTypes[i]);
+            if (isText) {
+                break;
+            }
+        }
     }
-    if (isText) {
+    BOOL isCompressed = FALSE;
+    String *encoding = responseRecordGetHeader(self->responseRecord,
+                                           "Content-Encoding");
+    if (encoding != NULL) {
+        isCompressed = stringEqualsCString(encoding, "gzip");
+    }
+    
+    if (isText && !isCompressed) {
         self.rawResponseTab.view = self.rawResTextCtrl.view;
         [self.rawResTextCtrl setBuffer: &(self->responseRecord->map)];
     } else {
