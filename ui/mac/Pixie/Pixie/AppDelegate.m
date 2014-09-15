@@ -46,8 +46,8 @@ static void on_end_request(ProxyServer *p, Request *req) {
     //Manually update menu item states
     [[self.enableTraceMenuItem menu] setAutoenablesItems:NO];
      
-    proxySetTrace(1);
-    [self.enableTraceMenuItem setState:NSOnState];
+    //proxySetTrace(1);
+    //[self.enableTraceMenuItem setState:NSOnState];
     
     proxyServerStartInBackground(self->proxyServer);    
     [self.startServerMenuItem setEnabled:FALSE];
