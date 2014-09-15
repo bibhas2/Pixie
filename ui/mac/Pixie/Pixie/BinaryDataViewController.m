@@ -33,24 +33,19 @@
                     [NSString alloc] initWithBytes:headerBuffer->buffer
                                             length:headerBuffer->length
                                           encoding:NSUTF8StringEncoding]];
+        [self.textView scrollRangeToVisible: NSMakeRange(0, 0)]; //Scroll to top
     } else {
         [self.textView setString:@""];
     }
+    [self.saveBtn setEnabled: bodyBuffer != NULL];
 }
 - (IBAction)saveBody:(id)sender {
     NSSavePanel * savePanel = [NSSavePanel savePanel];
-    // Restrict the file type to whatever you like
-    //[savePanel setAllowedFileTypes:@[@"txt"]];
-    // Set the starting directory
-    //[savePanel setDirectoryURL:someURL];
-    // Perform other setup
-    // Use a completion handler -- this is a block which takes one argument
-    // which corresponds to the button that was clicked
+
     [savePanel beginSheetModalForWindow:[[NSApplication sharedApplication] mainWindow]
                       completionHandler:^(NSInteger result){
         if (result == NSFileHandlingPanelOKButton) {
             NSURL* url = [savePanel URL];
-            //NSLog(@"%s", [url fileSystemRepresentation]);
             proxyServerSaveBuffer(proxy,
                     [url fileSystemRepresentation], bodyBuffer);
         }

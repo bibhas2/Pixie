@@ -182,25 +182,12 @@ CA
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnSelection="YES" multipleSelection="NO" autosaveColumns="NO" headerView="ufb-BX-C3B" id="t7G-T5-KmK">
-                                                    <rect key="frame" x="0.0" y="0.0" width="645" height="191"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="658" height="191"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <size key="intercellSpacing" width="3" height="2"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                     <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                                     <tableColumns>
-                                                        <tableColumn identifier="UNIQUE_ID" width="60" minWidth="40" maxWidth="1000" id="l9F-c4-heN">
-                                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="ID">
-                                                                <font key="font" metaFont="smallSystem"/>
-                                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
-                                                                <color key="backgroundColor" white="0.33333298560000002" alpha="1" colorSpace="calibratedWhite"/>
-                                                            </tableHeaderCell>
-                                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="vei-HJ-QeW">
-                                                                <font key="font" metaFont="system"/>
-                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                            </textFieldCell>
-                                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
-                                                        </tableColumn>
                                                         <tableColumn identifier="METHOD" width="74" minWidth="10" maxWidth="3.4028234663852886e+38" id="Yq8-KP-dAu">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Method">
                                                                 <font key="font" metaFont="smallSystem"/>
@@ -227,7 +214,7 @@ CA
                                                             </textFieldCell>
                                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                         </tableColumn>
-                                                        <tableColumn identifier="PATH" width="278" minWidth="10" maxWidth="3.4028234663852886e+38" id="5mQ-gl-IO8">
+                                                        <tableColumn identifier="PATH" width="318" minWidth="10" maxWidth="3.4028234663852886e+38" id="5mQ-gl-IO8">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Path">
                                                                 <font key="font" metaFont="smallSystem"/>
                                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -240,7 +227,7 @@ CA
                                                             </textFieldCell>
                                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                         </tableColumn>
-                                                        <tableColumn identifier="STATUS" width="64" minWidth="10" maxWidth="3.4028234663852886e+38" id="03H-9X-uGW">
+                                                        <tableColumn identifier="STATUS" width="113" minWidth="10" maxWidth="3.4028234663852886e+38" id="03H-9X-uGW">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Status">
                                                                 <font key="font" metaFont="smallSystem"/>
                                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -262,7 +249,7 @@ CA
                                             </subviews>
                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </clipView>
-                                        <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="KNK-nV-TBZ">
+                                        <scroller key="horizontalScroller" verticalHuggingPriority="750" horizontal="YES" id="KNK-nV-TBZ">
                                             <rect key="frame" x="1" y="192" width="645" height="16"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
@@ -271,7 +258,7 @@ CA
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                         <tableHeaderView key="headerView" id="ufb-BX-C3B">
-                                            <rect key="frame" x="0.0" y="0.0" width="645" height="17"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="658" height="17"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                         </tableHeaderView>
                                     </scrollView>

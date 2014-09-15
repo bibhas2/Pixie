@@ -16,17 +16,17 @@ static void on_request_header_parsed(ProxyServer *p, Request *req) {
 
     HttpRequest *r = [[HttpRequest alloc] initWithRequest:req];
     
-    NSLog(@"Request started: %@", r.uniqueId);
+    //NSLog(@"Request started: %@", r.uniqueId);
 
     [d performSelectorOnMainThread:@selector(addRequest:) withObject:r waitUntilDone:FALSE];
 }
 
 static void on_end_request(ProxyServer *p, Request *req) {
-    AppDelegate *d = (AppDelegate *)[NSApp delegate];
+    AppDelegate *d = (AppDelegate *)[[NSApplication sharedApplication] delegate];
     
     HttpRequest *r = [[HttpRequest alloc] initWithRequest:req];
     
-    NSLog(@"Request ended: %@", r.uniqueId);
+    //NSLog(@"Request ended: %@", r.uniqueId);
     
     [d performSelectorOnMainThread:@selector(updateRequest:) withObject:r waitUntilDone:FALSE];
 }
@@ -252,5 +252,6 @@ static NSString *bufferToString(Buffer *buffer) {
     [self.rawResTextCtrl setBuffer: NULL];
     [self.requestParamCtrl setNames:NULL
                              values:NULL];
+    [self.rawResBinCtrl setHeaderBuffer:NULL bodyBuffer:NULL];
 }
 @end

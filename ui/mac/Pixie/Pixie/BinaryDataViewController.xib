@@ -6,6 +6,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="BinaryDataViewController">
             <connections>
+                <outlet property="saveBtn" destination="jIe-yN-pBN" id="iMk-V6-CPu"/>
                 <outlet property="textView" destination="spo-sF-x46" id="bPL-p5-pRq"/>
                 <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
             </connections>
@@ -37,10 +38,10 @@
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <size key="minSize" width="478" height="184"/>
-                                <size key="maxSize" width="478" height="10000000"/>
+                                <size key="maxSize" width="480" height="10000000"/>
                                 <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                                 <size key="minSize" width="478" height="184"/>
-                                <size key="maxSize" width="478" height="10000000"/>
+                                <size key="maxSize" width="480" height="10000000"/>
                             </textView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -57,7 +58,7 @@
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jIe-yN-pBN">
                     <rect key="frame" x="172" y="13" width="136" height="32"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Save Body Data" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="a7X-zQ-3V7">
+                    <buttonCell key="cell" type="push" title="Save Body Data" bezelStyle="rounded" alignment="center" enabled="NO" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="a7X-zQ-3V7">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>

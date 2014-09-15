@@ -23,6 +23,7 @@
     }
     
     [self.textView setString: str];
+    [self.textView scrollRangeToVisible: NSMakeRange(0, 0)]; //Scroll to top
 }
 
 static NSString *bufferToString(Buffer *buffer) {

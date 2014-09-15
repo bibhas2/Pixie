@@ -14,7 +14,7 @@
     Buffer *headerBuffer;
     Buffer *bodyBuffer;
 }
-
+@property (strong) IBOutlet NSButton *saveBtn;
 @property (strong) IBOutlet NSTextView *textView;
 - (id)initWithProxyServer: (ProxyServer *) p;
 - (IBAction)saveBody:(id)sender;
