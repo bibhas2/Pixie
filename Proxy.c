@@ -71,8 +71,8 @@ int disconnect_clients(ProxyServer *p) {
  * the request object can be reused again for another TCP connection.
  */
 static void reset_request_state(Request *req) {
-	req->clientFd = 0;
-	req->serverFd = 0;
+	req->clientFd = -1;
+	req->serverFd = -1;
 
 	//Free all header strings
 	for (int j = 0; j < req->headerNames->length; ++j) {
@@ -212,10 +212,10 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	_info("Shutting down channel. Client %d server %d",
 		req->clientFd, req->serverFd);
 
-	if (req->clientFd > 0) {
+	if (req->clientFd >= 0) {
 		close(req->clientFd);
 	}
-	if (req->serverFd > 0) {
+	if (req->serverFd >= 0) {
 		close(req->serverFd);
 	}
 
@@ -254,7 +254,7 @@ static void persist_request_buffer(ProxyServer *p, Request *req) {
 int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) {
         _info("Connecting to %s:%d for client %d", host, port, req->clientFd);
 
-	assert(req->serverFd == 0);
+	assert(req->serverFd < 0);
 
         char port_str[128];
 
@@ -341,11 +341,8 @@ static void parse_response_header(ProxyServer *p, Request *req) {
 }
 
 int schedule_write_to_client(ProxyServer *p, Request *req) {
-        if (req->clientFd <= 0) {
-		_info("Can not write to invalid client socket.");
+        assert(req->clientFd >= 0);
 
-                return -1;
-        }
         if (req->clientIOFlag & RW_STATE_WRITE) {
                 //Already writing
 		_info("Write to client is already scheduled.");
@@ -383,11 +380,8 @@ int schedule_write_to_client(ProxyServer *p, Request *req) {
 }
 
 int schedule_write_to_server(ProxyServer *p, Request *req) {
-        if (req->serverFd <= 0) {
-		_info("Can not write to invalid server socket.");
+        assert(req->serverFd >= 0);
 
-                return -1;
-        }
         if (req->serverIOFlag & RW_STATE_WRITE) {
                 //Already writing
 		_info("Write to server is already scheduled.");
@@ -549,7 +543,8 @@ static void output_headers(ProxyServer *p, Request *req) {
 		p->onRequestHeaderParsed(p, req);
 	}
 
-	if (req->serverFd == 0) {
+	//Connect to server if we haven't already
+	if (req->serverFd < 0) {
 		int port = -1;
 		int isHTTPS = strcmp("https", 
 			stringAsCString(req->protocol)) == 0;
@@ -986,7 +981,7 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
         for (int i = 0; i < MAX_CLIENTS; ++i) {
                 Request *req = p->requests + i;
 
-                if (req->clientFd == 0) {
+                if (req->clientFd < 0) {
                         continue;
                 }
 
@@ -997,7 +992,8 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
                         FD_SET(req->clientFd, pWriteFdSet);
                 }
 
-                if (req->serverFd == 0) {
+                if (req->serverFd < 0) {
+			//No server connection yet. Skip the rest.
                         continue;
                 }
 
@@ -1013,7 +1009,7 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 
 int add_client_fd(ProxyServer *p, int clientFd) {
         for (int i = 0; i < MAX_CLIENTS; ++i) {
-                if (p->requests[i].clientFd == 0) {
+                if (p->requests[i].clientFd < 0) {
                         //We have a free slot
                         Request *req = p->requests + i;
 
@@ -1089,10 +1085,13 @@ int server_loop(ProxyServer *p) {
 			handle_control_command(p);
 		} else {
 			for (int i = 0; i < MAX_CLIENTS; ++i) {
+				if (p->requests[i].clientFd < 0) {
+					//This channel is not in use
+					continue;
+				}
 				if (FD_ISSET(p->requests[i].clientFd, &readFdSet)) {
 					handle_client_write(p, i);
-				}
-				if (FD_ISSET(p->requests[i].clientFd, &writeFdSet)) {
+				} else if (FD_ISSET(p->requests[i].clientFd, &writeFdSet)) {
 					handle_client_read(p, i);
 				}
 				/*
@@ -1101,10 +1100,13 @@ int server_loop(ProxyServer *p) {
 				 * system seems to be overwriting the connection error and we 
 				 * can't detect error using getsockopt(SO_ERROR) any more.
 				 */
+				if (p->requests[i].serverFd < 0) {
+					//Server not connected yet
+					continue;
+				}
 				if (FD_ISSET(p->requests[i].serverFd, &writeFdSet)) {
 					handle_server_read(p, i);
-				}
-				if (FD_ISSET(p->requests[i].serverFd, &readFdSet)) {
+				} else if (FD_ISSET(p->requests[i].serverFd, &readFdSet)) {
 					handle_server_write(p, i);
 				}
 			}
@@ -1123,6 +1125,8 @@ ProxyServer* newProxyServer(int port) {
 	p->onError = default_on_error;
 	p->persistenceFolder = newString();
 	p->runStatus = STOPPED;
+        p->serverSocket = -1;
+	p->controlPipe[0] = p->controlPipe[1] = -1; //Reset
 
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
@@ -1249,19 +1253,17 @@ int proxyServerStart(ProxyServer* p) {
         server_loop(p);
 
         close(sock);
-
-        p->serverSocket = 0;
+        p->serverSocket = -1;
 
 	close(p->controlPipe[0]);
 	close(p->controlPipe[1]);
-
-	p->controlPipe[0] = p->controlPipe[1] = 0; //Reset
+	p->controlPipe[0] = p->controlPipe[1] = -1; //Reset
 
 	//Close any open network connections
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 
-		if (req->clientFd != 0 || req->serverFd != 0) {
+		if (req->clientFd >= 0 || req->serverFd >= 0) {
 			shutdown_channel(p, req);
 		}
 	}
