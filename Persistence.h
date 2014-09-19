@@ -36,6 +36,8 @@ void deleteRequestRecord(RequestRecord *rec);
 ResponseRecord *newResponseRecord();
 void deleteResponseRecord(ResponseRecord *rec);
 
+int proxyServerLoadHistory(ProxyServer *p, void *contextData, 
+	void (*callback)(void *, const char*, RequestRecord *, ResponseRecord *));
 int proxyServerLoadRequest(ProxyServer *p, const char *uniqueId, 
 	RequestRecord *rec);
 int proxyServerLoadResponse(ProxyServer *p, const char *uniqueId, 

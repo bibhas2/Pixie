@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/mman.h>
+#include <dirent.h>
 
 #include "Proxy.h"
 #include "Persistence.h"
@@ -576,6 +577,146 @@ int proxyServerSaveBuffer(ProxyServer *p,
 	if (sz != buffer->length) {
 		DIE(p, -1, "Failed to save buffer properly.");
 	}
+
+	return 0;
+}
+
+/*
+ * Reads one line into the supplied String.
+ * Returns 1 if there is more data left to be read
+ * in the file. In case of end of file or error, returns 0.
+ */
+int read_line(FILE *file, String *line, char stopChar) {
+	int ch, stopped = 0;
+
+	line->length = 0;
+
+	while ((ch = fgetc(file)) != EOF) {
+		if (ch == '\r') {
+			continue;
+		}
+		if (ch == '\n') {
+			break;
+		}
+
+		stopped = stopped == 1 || ch == stopChar;
+
+		if (stopped == 0) {
+			stringAppendChar(line, (char) ch);
+		}
+	}
+
+	return ch != EOF;
+}
+
+int proxyServerLoadMeta(ProxyServer *p,
+	const char *uniqueId, RequestRecord* req, ResponseRecord *res) {
+	char file_name[512];
+
+	proxyServerResetRecords(p, req, res);
+
+	snprintf(file_name, sizeof(file_name), "%s/%s.meta",
+		stringAsCString(p->persistenceFolder), uniqueId);
+	
+	FILE *file = fopen(file_name, "r");
+
+	if (file == NULL) {
+		DIE(p, -1, "Failed to open meta file.");
+	}
+
+	String *name = newString();
+	int incompleteFile = 1;
+
+	for (int hasMore = 1; hasMore == 1; ) {
+		hasMore = read_line(file, name, '\0');
+
+		if (hasMore == 0) {
+			break;
+		}
+
+		//Must have a valid name
+		assert(name->length > 0);
+
+		incompleteFile = 0;
+
+		const char *nameStr = stringAsCString(name);
+
+		if (strcmp(nameStr, "protocol-line") == 0) {
+			hasMore = read_line(file, req->method, ' ');
+		} else if (strcmp(nameStr, "protocol") == 0) {
+			hasMore = read_line(file, req->protocol, '\0');
+		} else if (strcmp(nameStr, "host") == 0) {
+			hasMore = read_line(file, req->host, '\0');
+		} else if (strcmp(nameStr, "port") == 0) {
+			hasMore = read_line(file, req->port, '\0');
+		} else if (strcmp(nameStr, "path") == 0) {
+			//Deal with query string
+			hasMore = read_line(file, req->path, ' ');
+		} else if (strcmp(nameStr, "response-status-code") == 0) {
+			hasMore = read_line(file, res->statusCode, '\0');
+		} else if (strcmp(nameStr, "response-status-message") == 0) {
+			hasMore = read_line(file, res->statusMessage, '\0');
+		}
+	}
+
+	deleteString(name);
+
+	fclose(file);
+
+	return incompleteFile == 1 ? -2 : 0;
+}
+
+int proxyServerLoadHistory(ProxyServer *p, 
+	void *contextData,
+	void (*callback)(void *, const char*, RequestRecord*, ResponseRecord*)) {
+
+	if (callback == NULL) {
+		return 0; //What's the point?
+	}
+
+	DIR *dir = opendir(stringAsCString(p->persistenceFolder));
+	if (dir == NULL) {
+		DIE(p, -1, "Failed to get listing of persistence directory.");
+	}
+	
+	const char *ext = ".meta";
+	int extLen = strlen(ext);
+	struct dirent *ent = NULL;
+	int status = 0;
+	RequestRecord *req = newRequestRecord();
+	ResponseRecord *res = newResponseRecord();
+	String *uniqueId = newString();
+
+	while ((ent = readdir(dir)) != NULL) {
+		//Look for .meta extension
+		if (ent->d_namlen < extLen) {
+			//Discard
+			continue;
+		}
+		if (strcmp(ent->d_name + ent->d_namlen - extLen, ext) != 0) {
+			continue;
+		}
+		//We have a meta file
+		uniqueId->length = 0;
+		stringAppendBuffer(uniqueId, ent->d_name,
+			ent->d_namlen - extLen);
+		status = proxyServerLoadMeta(p, 
+			stringAsCString(uniqueId), req, res);
+
+		if (status < 0) {
+			continue;
+		}
+
+		callback(contextData, stringAsCString(uniqueId), req, res);
+	}
+
+	//Clean up
+	closedir(dir);
+	deleteRequestRecord(req);
+	deleteResponseRecord(res);
+	deleteString(uniqueId);
+
+	DIE(p, status, "Failed to load some meta files.");
 
 	return 0;
 }

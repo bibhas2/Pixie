@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import "Proxy.h"
+#import "Persistence.h"
 
 @interface HttpRequest : NSObject
 @property (strong, nonatomic) NSString* uniqueId;
@@ -18,4 +19,5 @@
 @property (strong, nonatomic) NSString* statusMessage;
 
 - (id) initWithRequest: (Request*) req;
+- (id) initWithUniqueId: (const char*) uniqueId requestRecord: (RequestRecord*) req responseRecord: (ResponseRecord*) res;
 @end

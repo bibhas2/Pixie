@@ -31,6 +31,14 @@ static void on_end_request(ProxyServer *p, Request *req) {
     [d performSelectorOnMainThread:@selector(updateRequest:) withObject:r waitUntilDone:FALSE];
 }
 
+static void on_history_load(void *data, const char *uniqueId, RequestRecord *req, ResponseRecord *res) {
+    AppDelegate *d = (AppDelegate *)[[NSApplication sharedApplication] delegate];
+    
+    HttpRequest *r = [[HttpRequest alloc] initWithUniqueId:uniqueId requestRecord:req responseRecord:res];
+    
+    [d addRequest:r];
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     self.requestList = [[NSMutableArray alloc] initWithCapacity:512];
@@ -60,6 +68,9 @@ static void on_end_request(ProxyServer *p, Request *req) {
                           initWithProxyServer:self->proxyServer];
     self.requestParamCtrl = [[ArrayPairViewController alloc] init];
     self.requestParamTab.view = self.requestParamCtrl.view;
+    
+    //Load history
+    proxyServerLoadHistory(self->proxyServer, NULL, on_history_load);
  }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
