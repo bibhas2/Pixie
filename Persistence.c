@@ -688,18 +688,23 @@ int proxyServerLoadHistory(ProxyServer *p,
 	String *uniqueId = newString();
 
 	while ((ent = readdir(dir)) != NULL) {
+		/*
+ 		 * Don't use d_namlen which is available in Mac but
+ 		 * not standard compiant and not there in Linux.
+ 		 */
+		size_t name_len = strlen(ent->d_name);
 		//Look for .meta extension
-		if (ent->d_namlen < extLen) {
+		if (name_len < extLen) {
 			//Discard
 			continue;
 		}
-		if (strcmp(ent->d_name + ent->d_namlen - extLen, ext) != 0) {
+		if (strcmp(ent->d_name + name_len - extLen, ext) != 0) {
 			continue;
 		}
 		//We have a meta file
 		uniqueId->length = 0;
 		stringAppendBuffer(uniqueId, ent->d_name,
-			ent->d_namlen - extLen);
+			name_len - extLen);
 		status = proxyServerLoadMeta(p, 
 			stringAsCString(uniqueId), req, res);
 
