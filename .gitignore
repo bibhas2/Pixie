@@ -2,3 +2,5 @@
 *.swp
 pixie
 libpixie.a
+*.suo
+*.sdf
