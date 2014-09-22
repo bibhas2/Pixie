@@ -75,12 +75,12 @@ static void reset_request_state(Request *req) {
 	req->serverFd = -1;
 
 	//Free all header strings
-	for (int j = 0; j < req->headerNames->length; ++j) {
+	for (size_t j = 0; j < req->headerNames->length; ++j) {
 		deleteString(arrayGet(req->headerNames, j));
 	}
 	req->headerNames->length = 0;
 
-	for (int j = 0; j < req->headerValues->length; ++j) {
+	for (size_t j = 0; j < req->headerValues->length; ++j) {
 		deleteString(arrayGet(req->headerValues, j));
 	}
 	req->headerValues->length = 0;
@@ -432,7 +432,7 @@ static void output_headers(ProxyServer *p, Request *req) {
 
 	int firstSlash = 1;
 
-	for (int i = 0; i < req->protocolLine->length; ++i) {
+	for (size_t i = 0; i < req->protocolLine->length; ++i) {
 		char ch = stringGetChar(req->protocolLine, i);
 
 		if (state == PROT_NONE) {
@@ -517,7 +517,7 @@ static void output_headers(ProxyServer *p, Request *req) {
 	bufferAppendBytes(req->requestBuffer,
 		req->path->buffer, req->path->length);
 	bufferAppendBytes(req->requestBuffer, newLine, 2);
-	for (int i = 0; i < req->headerNames->length; ++i) {
+	for (size_t i = 0; i < req->headerNames->length; ++i) {
 		String *name = arrayGet(req->headerNames, i);
 		String *value = arrayGet(req->headerValues, i);
 
@@ -609,7 +609,7 @@ void read_request_header(ProxyServer *p, Request *req) {
 	//Reset the position
 	req->requestBuffer->position = 0;
 
-	for (int i = 0; i < req->requestBuffer->length; ++i) {
+	for (size_t i = 0; i < req->requestBuffer->length; ++i) {
 		char ch = bufferNextByte(req->requestBuffer);
 		if (req->requestState == REQ_PARSE_PROTOCOL) {
 			if (ch == '\r') {
