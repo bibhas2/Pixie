@@ -4,3 +4,4 @@ pixie
 libpixie.a
 *.suo
 *.sdf
+*.opensdf

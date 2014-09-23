@@ -1,12 +1,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -217,62 +213,61 @@ int server_loop(ProxyServer *p) {
 	return 0;
 }
 
-int create_server_socket(ProxyServer *p, int *sockOut) {
-	int sock = socket(PF_INET, SOCK_STREAM, 0);
+int create_server_socket(ProxyServer *p, SOCKET *sock) {
+	*sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	DIE(p, sock, "Failed to open socket.");
-
-	int status = fcntl(sock, F_SETFL, O_NONBLOCK);
-	DIE(p, status,
-		"Failed to set non blocking mode for server listener socket.");
-
-	int reuse = 1;
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof reuse);
+	DIE_IF(p, sock == INVALID_SOCKET, "Failed to open socket.");
 
 	struct sockaddr_in addr;
 
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(p->port);
 
-	_info("Proxy server binding to port: %d", p->port);
-	status = bind(sock, (struct sockaddr*) &addr, sizeof(addr));
-
-	DIE(p, status, "Failed to bind to port.");
-
+	int status = bind(sock, (SOCKADDR *)&addr, sizeof(addr));
+	DIE_IF(p, status == SOCKET_ERROR, "Failed to bind to port");
 	status = listen(sock, 10);
-	DIE(p, status, "Failed to listen.");
-
-	*sockOut = sock;
+	DIE_IF(p, status == SOCKET_ERROR, "Failed to listen on socket.");
 
 	return 0;
 }
 
-int os_close_socket(int s) {
-	return close(s);
+int os_close_socket(SOCKET s) {
+	return closesocket(s) == 0 ? 0 : -1;
 }
 
-int os_close_pipe(int p) {
-	return close(p);
+int os_close_pipe(HANDLE p) {
+	return CloseHandle(p) == 0 ? -1 : 0;
 }
 
-int os_create_thread(pthread_t *thread, int (*start_routine)(void*), void *arg) {
-	return pthread_create(thread, NULL, 
-		(void *(*)(void *)) start_routine, arg);
+int os_create_thread(HANDLE *thread, int (*start_routine)(void*), void *arg) {
+	*thread = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
+	return *thread == NULL ? -1 : 0;
 }
 
-int os_join_thread(pthread_t thread) {
-	return pthread_join(thread, NULL);
+int os_join_thread(HANDLE thread) {
+	DWORD status = WaitForSingleObject(thread, INFINITE);
+	CloseHandle(thread);
+
+	return status == WAIT_FAILED ? -1 : 0;
 }
 
-int os_create_pipe(int fdList[2]) {
-	return pipe(fdList);
+int os_create_pipe(HANDLE fdList[2]) {
+	return CreatePipe(fdList, fdList + 1, NULL, 0) == 0 ? -1 : 0;
 }
 
-int os_read_pipe(int fd, void *buffer, size_t size) {
-	return read(fd, buffer, size);
+int os_read_pipe(HANDLE fd, void *buffer, size_t size) {
+	DWORD sizeRead;
+
+	BOOL status = ReadFile(fd, buffer, size, &sizeRead, NULL);
+
+	return status == 0 ? -1 : sizeRead;
 }
 
-int os_write_pipe(int fd, void *buffer, size_t size) {
-	return write(fd, buffer, size);
+int os_write_pipe(HANDLE fd, void *buffer, size_t size) {
+	DWORD sizeWritten;
+
+	BOOL status = WriteFile(fd, buffer, size, &sizeWritten, NULL);
+
+	return status == 0 ? -1 : sizeWritten;
 }

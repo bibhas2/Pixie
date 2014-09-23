@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -1021,39 +1024,12 @@ int proxyServerStart(ProxyServer* p) {
 	status = os_create_pipe(p->controlPipe);
 	DIE(p, status, "Failed to create server control pipe.");
 
-	int sock = socket(PF_INET, SOCK_STREAM, 0);
-
-	DIE(p, sock, "Failed to open socket.");
-
-	status = fcntl(sock, F_SETFL, O_NONBLOCK);
-	DIE(p, status,
-		"Failed to set non blocking mode for server listener socket.");
-
-	int reuse = 1;
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof reuse);
-
-	struct sockaddr_in addr;
-
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(p->port);
-
-	_info("Proxy server binding to port: %d", p->port);
-	status = bind(sock, (struct sockaddr*) &addr, sizeof(addr));
-
-	DIE(p, status, "Failed to bind to port.");
-
-	_info("Calling listen.");
-	status = listen(sock, 10);
-	_info("listen returned.");
-
-	DIE(p, status, "Failed to listen.");
-
-	p->serverSocket = sock;
+	int status = create_server_socket(p, &(p->serverSocket));
+	DIE(p, status, "Failed to create server socket.");
 
 	server_loop(p);
 
-	os_close_socket(sock);
+	os_close_socket(p->serverSocket);
 	p->serverSocket = INVALID_SOCKET;
 
 	os_close_pipe(p->controlPipe[0]);

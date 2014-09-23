@@ -1,21 +1,33 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/time.h>
 #include <pthread.h>
+#endif
 
 #include "../Cute/String.h"
 #include "../Cute/Array.h"
 #include "../Cute/Buffer.h"
 
-
-#define RW_STATE_NONE 0
-#define RW_STATE_READ 2
-#define RW_STATE_WRITE 4
+#ifdef _WIN32
+//Due to limitation in wait for multiple events
+#define MAX_CLIENTS 20
+#else
+#define MAX_CLIENTS 256
+#endif
 
 typedef struct _Request {
-	String *uniqueId; //Every HTTP request gets a unique ID
-
+#ifdef _WIN32
+	SOCKET clientFd;
+	SOCKET serverFd;
+	WSAEVENT clientEvent;
+	WSAEVENT serverEvent;
+#else
 	int clientFd;
 	int serverFd;
-
+#endif
+	String *uniqueId; //Every HTTP request gets a unique ID
 	String *protocolLine;
 	String *protocol;
 	String *method;
@@ -49,24 +61,28 @@ typedef struct _Request {
 	struct timeval responseEndTime;
 } Request;
 
-#define MAX_CLIENTS 256
-
 typedef enum _RunStatus {
 	STOPPED,
 	RUNNING
 } RunStatus;
 
 typedef struct _ProxyServer {
+#ifdef _WIN32
+	HANDLE backgroundThreadId;
+	HANDLE controlPipe[2];
+	SOCKET serverSocket;
+#else
+	pthread_t backgroundThreadId;
+	int controlPipe[2];
+	int serverSocket;
+#endif
 	Request requests[MAX_CLIENTS];
 	int persistenceEnabled;
 	int port;
-	int serverSocket;
 	String *persistenceFolder;
-	pthread_t backgroundThreadId;
 	int isInBackgroundMode;
 
 	//Server control mechanism
-	int controlPipe[2];
 	RunStatus runStatus;
 
 	//Various event notification callbacks
