@@ -5,6 +5,11 @@
 #include "../Cute/Array.h"
 #include "../Cute/Buffer.h"
 
+
+#define RW_STATE_NONE 0
+#define RW_STATE_READ 2
+#define RW_STATE_WRITE 4
+
 typedef struct _Request {
 	String *uniqueId; //Every HTTP request gets a unique ID
 
