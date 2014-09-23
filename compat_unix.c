@@ -217,10 +217,31 @@ int server_loop(ProxyServer *p) {
 	return 0;
 }
 
-int close_socket(int s) {
+int os_close_socket(int s) {
 	return close(s);
 }
 
-int close_pipe(int p) {
+int os_close_pipe(int p) {
 	return close(p);
+}
+
+int os_create_thread(pthread_t *thread, int (*start_routine)(void*), void *arg) {
+	return pthread_create(thread, NULL, 
+		(void *(*)(void *)) start_routine, arg);
+}
+
+int os_join_thread(pthread_t thread) {
+	return pthread_join(thread, NULL);
+}
+
+int os_create_pipe(int fdList[2]) {
+	return pipe(fdList);
+}
+
+int os_read_pipe(int fd, void *buffer, size_t size) {
+	return read(fd, buffer, size);
+}
+
+int os_write_pipe(int fd, void *buffer, size_t size) {
+	return write(fd, buffer, size);
 }

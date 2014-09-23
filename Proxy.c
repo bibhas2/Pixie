@@ -208,10 +208,10 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 		req->clientFd, req->serverFd);
 
 	if (IS_OPEN(req->clientFd)) {
-		close_socket(req->clientFd);
+		os_close_socket(req->clientFd);
 	}
 	if (IS_OPEN(req->serverFd)) {
-		close_socket(req->serverFd);
+		os_close_socket(req->serverFd);
 	}
 
 	/*
@@ -907,7 +907,7 @@ int handle_client_connect(ProxyServer *p, Request *req) {
 int handle_control_command(ProxyServer *p) {
 	char buff[5];
 
-	int sz = read(p->controlPipe[0], buff, sizeof(buff));
+	int sz = os_read_pipe(p->controlPipe[0], buff, sizeof(buff));
 	DIE(p, sz, "Failed to read control command.");
 
 	_info("Received control command: %.*s", sz, buff);
@@ -1018,7 +1018,7 @@ int proxyServerStart(ProxyServer* p) {
 	configure_persistence_folder(p);
 
 	//Create the server control pipes
-	status = pipe(p->controlPipe);
+	status = os_create_pipe(p->controlPipe);
 	DIE(p, status, "Failed to create server control pipe.");
 
 	int sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -1053,11 +1053,11 @@ int proxyServerStart(ProxyServer* p) {
 
 	server_loop(p);
 
-	close_socket(sock);
+	os_close_socket(sock);
 	p->serverSocket = INVALID_SOCKET;
 
-	close_pipe(p->controlPipe[0]);
-	close_pipe(p->controlPipe[1]);
+	os_close_pipe(p->controlPipe[0]);
+	os_close_pipe(p->controlPipe[1]);
 	p->controlPipe[0] = p->controlPipe[1] = INVALID_PIPE; //Reset
 
 	//Close any open network connections
@@ -1077,10 +1077,10 @@ int proxyServerStart(ProxyServer* p) {
 	return 0;
 }
 
-int send_control_command(ProxyServer *p, const char *cmd, int len) {
-	int sz = write(p->controlPipe[1], cmd, len);
+int send_control_command(ProxyServer *p, char *cmd, int len) {
+	int sz = os_write_pipe(p->controlPipe[1], cmd, len);
 
-	DIE(p, sz, "Failed to write cotrol command.");
+	DIE(p, sz, "Failed to write control command.");
 
 	return 0;
 }
@@ -1099,7 +1099,7 @@ int proxyServerStop(ProxyServer *p) {
 	if (status >= 0) {
 		//Wait for the thread to end.
 		_info("Waiting for background thread to end.");
-		status = pthread_join(p->backgroundThreadId, NULL);
+		status = os_join_thread(p->backgroundThreadId);
 		DIE(p, status, "Failed to wait for background thread to end.");
 		_info("Done waiting for background thread to end.");
 	} else {
@@ -1109,18 +1109,18 @@ int proxyServerStop(ProxyServer *p) {
 	return 0;
 }
 
-static void * _bgStartHelper(void *p) {
+static int _bgStartHelper(void *p) {
 	proxyServerStart((ProxyServer*)p);
 
 	_info("Background thread exiting.");
-	return NULL;
+	return 0;
 }
 
 int proxyServerStartInBackground(ProxyServer* server) {
 	_info("Creating background thread to run the server.");
 
-	int status = pthread_create(&(server->backgroundThreadId),
-		NULL, _bgStartHelper, server);
+	int status = os_create_thread(&(server->backgroundThreadId),
+		_bgStartHelper, server);
 
 	DIE(server, status, "Failed to create background thread.");
 

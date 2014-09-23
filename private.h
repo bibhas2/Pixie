@@ -16,13 +16,23 @@ int disconnect_clients(ProxyServer *p);
 #define IS_CLOSED(fd) (fd == INVALID_SOCKET)
 #define IS_OPEN(fd) (fd != INVALID_SOCKET)
 #define INVALID_PIPE INVALID_HANDLE
-int close_socket(SOCKET s);
-int close_pipe(HANDLE p);
+int os_close_socket(SOCKET s);
+int os_close_pipe(HANDLE p);
+int os_create_thread(HANDLE *thread, int (*start_routine)(void*), void *arg);
+int os_join_thread(HANDLE thread);
+int os_create_pipe(HANDLE fdList[2]);
+int os_read_pipe(HANDLE fd, void *buffer, size_t size);
+int os_write_pipe(HANDLE fd, void *buffer, size_t size);
 #else
 #define IS_CLOSED(fd) (fd < 0)
 #define IS_OPEN(fd) (fd >= 0)
 #define INVALID_SOCKET -1
 #define INVALID_PIPE -1
-int close_socket(int s);
-int close_pipe(int p);
+int os_close_socket(int s);
+int os_close_pipe(int p);
+int os_create_thread(pthread_t *thread, int (*start_routine)(void*), void *arg);
+int os_join_thread(pthread_t thread);
+int os_create_pipe(int fdList[2]);
+int os_read_pipe(int fd, void *buffer, size_t size);
+int os_write_pipe(int fd, void *buffer, size_t size);
 #endif
