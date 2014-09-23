@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-std=gnu99 
-OBJS=Proxy.o Persistence.o 
-HEADERS=Proxy.h Persistence.h
+OBJS=Proxy.o Persistence.o compat_unix.o
+HEADERS=Proxy.h Persistence.h private.h
 
 all: pixie
 

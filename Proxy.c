@@ -66,8 +66,8 @@ int disconnect_clients(ProxyServer *p) {
  * the request object can be reused again for another TCP connection.
  */
 static void reset_request_state(Request *req) {
-	req->clientFd = -1;
-	req->serverFd = -1;
+	req->clientFd = INVALID_SOCKET;
+	req->serverFd = INVALID_SOCKET;
 
 	//Free all header strings
 	for (size_t j = 0; j < req->headerNames->length; ++j) {
@@ -207,11 +207,11 @@ int shutdown_channel(ProxyServer *p, Request *req) {
 	_info("Shutting down channel. Client %d server %d",
 		req->clientFd, req->serverFd);
 
-	if (req->clientFd >= 0) {
-		close(req->clientFd);
+	if (IS_OPEN(req->clientFd)) {
+		close_socket(req->clientFd);
 	}
-	if (req->serverFd >= 0) {
-		close(req->serverFd);
+	if (IS_OPEN(req->serverFd)) {
+		close_socket(req->serverFd);
 	}
 
 	/*
@@ -280,7 +280,7 @@ static void parse_response_header(ProxyServer *p, Request *req) {
 }
 
 int schedule_write_to_client(ProxyServer *p, Request *req) {
-	assert(req->clientFd >= 0);
+	assert(IS_OPEN(req->clientFd));
 
 	if (req->clientIOFlag & RW_STATE_WRITE) {
 		//Already writing
@@ -319,7 +319,7 @@ int schedule_write_to_client(ProxyServer *p, Request *req) {
 }
 
 int schedule_write_to_server(ProxyServer *p, Request *req) {
-	assert(req->serverFd >= 0);
+	assert(IS_OPEN(req->serverFd));
 
 	if (req->serverIOFlag & RW_STATE_WRITE) {
 		//Already writing
@@ -483,7 +483,7 @@ static void output_headers(ProxyServer *p, Request *req) {
 	}
 
 	//Connect to server if we haven't already
-	if (req->serverFd < 0) {
+	if (IS_CLOSED(req->serverFd)) {
 		int port = -1;
 		int isHTTPS = strcmp("https",
 			stringAsCString(req->protocol)) == 0;
@@ -513,7 +513,7 @@ static void output_headers(ProxyServer *p, Request *req) {
 			return;
 		}
 
-		assert(req->serverFd > 0);
+		assert(IS_OPEN(req->serverFd));
 
 		//Enable read from server
 		req->serverIOFlag |= RW_STATE_READ;
@@ -684,9 +684,9 @@ int handle_client_read(ProxyServer *p, int position) {
 
 	char *buffer_start =
 		req->responseBuffer->buffer + req->clientWriteCompleted;
-	int bytesWritten = write(req->clientFd,
+	int bytesWritten = send(req->clientFd,
 		buffer_start,
-		req->responseBuffer->length - req->clientWriteCompleted);
+		req->responseBuffer->length - req->clientWriteCompleted, 0);
 
 	_info("Written to client (%d) %d of %d bytes", req->clientFd,
 		bytesWritten, req->responseBuffer->length);
@@ -736,9 +736,9 @@ int handle_server_read(ProxyServer *p, int position) {
 	}
 
 	char *buffer_start = req->requestBuffer->buffer + req->serverWriteCompleted;
-	int bytesWritten = write(req->serverFd,
+	int bytesWritten = send(req->serverFd,
 		buffer_start,
-		req->requestBuffer->length - req->serverWriteCompleted);
+		req->requestBuffer->length - req->serverWriteCompleted, 0);
 
 	_info("Written to server (%d) %d of %d bytes",
 		req->serverFd, bytesWritten,
@@ -785,9 +785,9 @@ int handle_client_write(ProxyServer *p, int position) {
 
 	req->requestBuffer->length = 0;
 
-	int bytesRead = read(req->clientFd,
+	int bytesRead = recv(req->clientFd,
 		req->requestBuffer->buffer,
-		req->requestBuffer->capacity);
+		req->requestBuffer->capacity, 0);
 
 	_info("Read request from client (%d) %d bytes",
 		req->clientFd, bytesRead);
@@ -830,9 +830,9 @@ int handle_server_write(ProxyServer *p, int position) {
 
 	req->responseBuffer->length = 0;
 
-	int bytesRead = read(req->serverFd,
+	int bytesRead = recv(req->serverFd,
 		req->responseBuffer->buffer,
-		req->responseBuffer->capacity);
+		req->responseBuffer->capacity, 0);
 
 	_info("Read response from server (%d) %d bytes",
 		req->serverFd, bytesRead);
@@ -880,7 +880,7 @@ int handle_server_write(ProxyServer *p, int position) {
 
 int add_client_fd(ProxyServer *p, int clientFd) {
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
-		if (p->requests[i].clientFd < 0) {
+		if (IS_CLOSED(p->requests[i].clientFd)) {
 			//We have a free slot
 			Request *req = p->requests + i;
 
@@ -926,8 +926,8 @@ ProxyServer* newProxyServer(int port) {
 	p->onError = default_on_error;
 	p->persistenceFolder = newString();
 	p->runStatus = STOPPED;
-	p->serverSocket = -1;
-	p->controlPipe[0] = p->controlPipe[1] = -1; //Reset
+	p->serverSocket = INVALID_SOCKET;
+	p->controlPipe[0] = p->controlPipe[1] = INVALID_PIPE; //Reset
 
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
@@ -1053,18 +1053,18 @@ int proxyServerStart(ProxyServer* p) {
 
 	server_loop(p);
 
-	close(sock);
-	p->serverSocket = -1;
+	close_socket(sock);
+	p->serverSocket = INVALID_SOCKET;
 
-	close(p->controlPipe[0]);
-	close(p->controlPipe[1]);
-	p->controlPipe[0] = p->controlPipe[1] = -1; //Reset
+	close_pipe(p->controlPipe[0]);
+	close_pipe(p->controlPipe[1]);
+	p->controlPipe[0] = p->controlPipe[1] = INVALID_PIPE; //Reset
 
 	//Close any open network connections
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 
-		if (req->clientFd >= 0 || req->serverFd >= 0) {
+		if (IS_OPEN(req->clientFd) || IS_OPEN(req->serverFd)) {
 			shutdown_channel(p, req);
 		}
 	}

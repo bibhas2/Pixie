@@ -23,7 +23,7 @@
 int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) {
 	_info("Connecting to %s:%d for client %d", host, port, req->clientFd);
 
-	assert(req->serverFd < 0);
+	assert(IS_CLOSED(req->serverFd));
 
 	char port_str[128];
 
@@ -116,7 +116,7 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 
-		if (req->clientFd < 0) {
+		if (IS_CLOSED(req->clientFd)) {
 			continue;
 		}
 
@@ -127,7 +127,7 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 			FD_SET(req->clientFd, pWriteFdSet);
 		}
 
-		if (req->serverFd < 0) {
+		if (IS_CLOSED(req->serverFd)) {
 			//No server connection yet. Skip the rest.
 			continue;
 		}
@@ -180,7 +180,7 @@ int server_loop(ProxyServer *p) {
 			handle_control_command(p);
 		} else {
 			for (int i = 0; i < MAX_CLIENTS; ++i) {
-				if (p->requests[i].clientFd < 0) {
+				if (IS_CLOSED(p->requests[i].clientFd)) {
 					//This channel is not in use
 					continue;
 				}
@@ -195,7 +195,7 @@ int server_loop(ProxyServer *p) {
 				 * system seems to be overwriting the connection error and we
 				 * can't detect error using getsockopt(SO_ERROR) any more.
 				 */
-				if (p->requests[i].serverFd < 0) {
+				if (IS_CLOSED(p->requests[i].serverFd)) {
 					//Server not connected yet
 					continue;
 				}
@@ -215,4 +215,12 @@ int server_loop(ProxyServer *p) {
 	disconnect_clients(p);
 
 	return 0;
+}
+
+int close_socket(int s) {
+	return close(s);
+}
+
+int close_pipe(int p) {
+	return close(p);
 }
