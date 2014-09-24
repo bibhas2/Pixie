@@ -995,27 +995,17 @@ void deleteProxyServer(ProxyServer *p) {
 }
 
 static int configure_persistence_folder(ProxyServer *p) {
-	const char *home = getenv("HOME");
-
-	if (home != NULL) {
-		stringAppendCString(p->persistenceFolder, home);
-	}
-
+	os_get_home_directory(p->persistenceFolder);
+	
 	stringAppendCString(p->persistenceFolder, "/.pixie");
 
 	const char *dir = stringAsCString(p->persistenceFolder);
 
 	_info("Creating persistence folder: %s", dir);
 
-	int status = mkdir(dir, 0700);
-	if (status < 0) {
-		if (errno == EEXIST) {
-			//Path already exists. It may not be a folder. For now do nothing.
-			_info("Persistence folder already exists.");
-		} else {
-			DIE(p, status, "Failed to create persistence folder.");
-		}
-	}
+	int bExists;
+	int status = os_mkdir(dir);
+	DIE(p, status, "Failed to create persistence folder.");
 
 	return 0;
 }

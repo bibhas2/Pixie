@@ -294,3 +294,19 @@ int os_write_pipe(int fd, void *buffer, size_t size) {
 int os_gettimeofday(struct timeval *time) {
 	return gettimeofday(time, NULL);
 }
+
+int os_mkdir(const char *dir) {
+	if (mkdir(dir, 0700) < 0) {
+		return errono == EEXIST ? 0 : -1;
+	}
+
+	return 0;
+}
+
+void os_get_home_directory(String *path) {
+	const char *home = getenv("HOME");
+
+	if (home != NULL) {
+		stringAppendCString(path, home);
+	}
+}

@@ -37,7 +37,6 @@ int os_join_thread(HANDLE thread);
 int os_create_pipe(HANDLE fdList[2]);
 int os_read_pipe(HANDLE fd, void *buffer, size_t size);
 int os_write_pipe(HANDLE fd, void *buffer, size_t size);
-int os_gettimeofday(FILETIME *time);
 #else
 #define IS_CLOSED(fd) (fd < 0)
 #define IS_OPEN(fd) (fd >= 0)
@@ -50,5 +49,8 @@ int os_join_thread(pthread_t thread);
 int os_create_pipe(int fdList[2]);
 int os_read_pipe(int fd, void *buffer, size_t size);
 int os_write_pipe(int fd, void *buffer, size_t size);
-int os_gettimeofday(struct timeval *time);
 #endif
+
+int os_gettimeofday(struct timeval* p);
+int os_mkdir(const char *dir); //Returns 0 if failed because existing directory
+void os_get_home_directory(String *path);

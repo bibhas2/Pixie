@@ -10,6 +10,7 @@
 
 #include "Proxy.h"
 #include "private.h"
+#include <Shlobj.h>
 
 /*
  * Asynchronously connects to a server.
@@ -324,9 +325,32 @@ int os_write_pipe(HANDLE fd, void *buffer, size_t size) {
 
 	return status == 0 ? -1 : sizeWritten;
 }
+//Stolen from glibc for MingW
+int os_gettimeofday(struct timeval* p) {
+	union {
+		long long ns100; /*time since 1 Jan 1601 in 100ns units */
+		FILETIME ft;
+	} now;
 
-int os_gettimeofday(FILETIME *time) {
-	GetSystemTimeAsFileTime(time);
+	GetSystemTimeAsFileTime(&(now.ft));
+	p->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL);
+	p->tv_sec = (long)((now.ns100 - (116444736000000000LL)) / 10000000LL);
+	
+	return 0;
+}
+
+int os_mkdir(const char *dir) {
+	if (CreateDirectoryA(dir, NULL) == 0) {
+		return GetLastError() == ERROR_ALREADY_EXISTS ? 0 : -1;
+	}
 
 	return 0;
+}
+
+void os_get_home_directory(String *path) {
+	char buff[MAX_PATH];
+
+	if (SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, buff) != S_OK) {
+		stringAppendCString(path, buff);
+	}
 }
