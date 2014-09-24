@@ -100,10 +100,12 @@ static void reset_request_state(Request *req) {
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
 	req->connectionEstablished = 0;
+	/*
 	req->requestStartTime.tv_sec = 0;
 	req->requestStartTime.tv_usec = 0;
 	req->responseEndTime.tv_sec = 0;
 	req->responseEndTime.tv_usec = 0;
+	*/
 	req->responseHeaderParseState = RES_HEADER_STATE_PROTOCOL;
 }
 
@@ -112,7 +114,7 @@ static void on_begin_request(ProxyServer *p, Request *req) {
 	 * Store the request start time. Also use it to generate a unique ID for
 	 * the request.
 	 */
-	assert(gettimeofday(&req->requestStartTime, NULL) == 0);
+	assert(os_gettimeofday(&req->requestStartTime) == 0);
 
 	char uid[256];
 
@@ -248,7 +250,7 @@ static void persist_request_buffer(ProxyServer *p, Request *req) {
 static void parse_response_header(ProxyServer *p, Request *req) {
 	assert(req->responseHeaderParseState != RES_HEADER_STATE_DONE);
 
-	for (int i = 0; i < req->responseBuffer->length; ++i) {
+	for (size_t i = 0; i < req->responseBuffer->length; ++i) {
 		char ch = req->responseBuffer->buffer[i];
 
 		if (ch == '\r') {
@@ -850,7 +852,7 @@ int handle_server_write(ProxyServer *p, int position) {
 	 * The current approach gives us the accuracy at the expense of calling
 	 * gettimeofday() unnecessarily too many times.
 	 */
-	assert(gettimeofday(&req->responseEndTime, NULL) == 0);
+	assert(os_gettimeofday(&req->responseEndTime) == 0);
 
 	if (bytesRead < 0) {
 		if (errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -932,6 +934,8 @@ ProxyServer* newProxyServer(int port) {
 	p->serverSocket = INVALID_SOCKET;
 	p->controlPipe[0] = p->controlPipe[1] = INVALID_PIPE; //Reset
 
+	compat_new_proxy_server(p);
+
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		Request *req = p->requests + i;
 
@@ -949,6 +953,8 @@ ProxyServer* newProxyServer(int port) {
 		req->requestBuffer = newBufferWithCapacity(512);
 		req->responseBuffer = newBufferWithCapacity(1024);
 		req->requestBodyOverflowBuffer = newBufferWithCapacity(256);
+
+		compat_new_request(req);
 
 		reset_request_state(req);
 	}
@@ -977,9 +983,13 @@ void deleteProxyServer(ProxyServer *p) {
 		deleteArray(req->headerNames);
 
 		deleteArray(req->headerValues);
+
+		compat_delete_request(req);
 	}
 
 	deleteString(p->persistenceFolder);
+
+	compat_delete_proxy_server(p);
 
 	free(p);
 }
@@ -1024,7 +1034,7 @@ int proxyServerStart(ProxyServer* p) {
 	status = os_create_pipe(p->controlPipe);
 	DIE(p, status, "Failed to create server control pipe.");
 
-	int status = create_server_socket(p, &(p->serverSocket));
+	status = create_server_socket(p);
 	DIE(p, status, "Failed to create server socket.");
 
 	server_loop(p);

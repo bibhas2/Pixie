@@ -1,5 +1,11 @@
 int connect_to_server(ProxyServer *p, Request *req, const char *host, int port);
 int server_loop(ProxyServer *p);
+int create_server_socket(ProxyServer *p);
+int compat_new_proxy_server(ProxyServer *p);
+int compat_new_request(Request *req);
+int compat_delete_proxy_server(ProxyServer *p);
+int compat_delete_request(Request *req);
+
 void _info(const char* fmt, ...);
 int shutdown_channel(ProxyServer *p, Request *req);
 int add_client_fd(ProxyServer *p, int clientFd);
@@ -10,6 +16,8 @@ int handle_client_read(ProxyServer *p, int position);
 int handle_server_read(ProxyServer *p, int position);
 int handle_server_write(ProxyServer *p, int position);
 int disconnect_clients(ProxyServer *p);
+int on_client_disconnect(ProxyServer *p, Request *req);
+int on_server_disconnect(ProxyServer *p, Request *req);
 
 #define DIE(p, value, msg) if (value < 0) {if (p->onError != NULL) {p->onError(msg);} return value;}
 #define DIE_IF(p, cond, msg) if (cond) {if (p->onError != NULL) {p->onError(msg);} return -1;}
@@ -22,7 +30,6 @@ int disconnect_clients(ProxyServer *p);
 #define IS_CLOSED(fd) (fd == INVALID_SOCKET)
 #define IS_OPEN(fd) (fd != INVALID_SOCKET)
 #define INVALID_PIPE INVALID_HANDLE_VALUE
-int create_server_socket(ProxyServer *p, SOCKET *sock);
 int os_close_socket(SOCKET s);
 int os_close_pipe(HANDLE p);
 int os_create_thread(HANDLE *thread, int (*start_routine)(void*), void *arg);
@@ -30,12 +37,12 @@ int os_join_thread(HANDLE thread);
 int os_create_pipe(HANDLE fdList[2]);
 int os_read_pipe(HANDLE fd, void *buffer, size_t size);
 int os_write_pipe(HANDLE fd, void *buffer, size_t size);
+int os_gettimeofday(FILETIME *time);
 #else
 #define IS_CLOSED(fd) (fd < 0)
 #define IS_OPEN(fd) (fd >= 0)
 #define INVALID_SOCKET -1
 #define INVALID_PIPE -1
-int create_server_socket(ProxyServer *p, int *sock);
 int os_close_socket(int s);
 int os_close_pipe(int p);
 int os_create_thread(pthread_t *thread, int (*start_routine)(void*), void *arg);
@@ -43,4 +50,5 @@ int os_join_thread(pthread_t thread);
 int os_create_pipe(int fdList[2]);
 int os_read_pipe(int fd, void *buffer, size_t size);
 int os_write_pipe(int fd, void *buffer, size_t size);
+int os_gettimeofday(struct timeval *time);
 #endif

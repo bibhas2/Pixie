@@ -23,9 +23,15 @@ typedef struct _Request {
 	SOCKET serverFd;
 	WSAEVENT clientEvent;
 	WSAEVENT serverEvent;
+	//Timing
+	FILETIME requestStartTime;
+	FILETIME responseEndTime;
 #else
 	int clientFd;
 	int serverFd;
+	//Timing
+	struct timeval requestStartTime;
+	struct timeval responseEndTime;
 #endif
 	String *uniqueId; //Every HTTP request gets a unique ID
 	String *protocolLine;
@@ -56,9 +62,6 @@ typedef struct _Request {
 	FILE *requestFile;
 	FILE *responseFile;
 
-	//Timing
-	struct timeval requestStartTime;
-	struct timeval responseEndTime;
 } Request;
 
 typedef enum _RunStatus {
@@ -71,6 +74,7 @@ typedef struct _ProxyServer {
 	HANDLE backgroundThreadId;
 	HANDLE controlPipe[2];
 	SOCKET serverSocket;
+	WSAEVENT serverEvent;
 #else
 	pthread_t backgroundThreadId;
 	int controlPipe[2];

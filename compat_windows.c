@@ -11,7 +11,6 @@
 #include "Proxy.h"
 #include "private.h"
 
-
 /*
  * Asynchronously connects to a server.
  * Returns 0 in case of success else an error status.
@@ -21,43 +20,43 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 
 	assert(IS_CLOSED(req->serverFd));
 
+	struct addrinfo hints, *res;
 	char port_str[128];
 
-	snprintf(port_str, sizeof(port_str), "%d", port);
-
-	struct addrinfo hints, *res;
+	_snprintf_s(port_str, (size_t) sizeof(port_str), (size_t) sizeof(port_str), "%d", port);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	_info("Resolving name: %s.", host);
-	int status = getaddrinfo(host, port_str, &hints, &res);
-	DIE(p, status, "getaddrinfo() failed.");
-	if (res == NULL) {
-		_info("Failed to resolve address: %s", host);
-		DIE(p, -1, "Failed to resolve address");
-	}
+	int status = getaddrinfo(host, (const char*) port, &hints, &res);
+	DIE_IF(p, status != 0, "getaddrinfo() failed.");
+	DIE_IF(p, res == NULL, "Failed to resolve address.");
 
-	int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	DIE(p, sock, "Failed to open socket.");
+	SOCKET sock;
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	DIE_IF(p, sock == INVALID_SOCKET, "socket function failed");
 
-	//Enable non-blocking I/O and connect
-	status = fcntl(sock, F_SETFL, O_NONBLOCK);
-	DIE(p, status, "Failed to set non blocking mode for socket.");
-	//Connect in a non-blocking manner
+	//Enable non-blocking connect
+	u_long iMode = 1;
+	status = ioctlsocket(sock, FIONBIO, &iMode);
+	DIE_IF(p, status == SOCKET_ERROR, "Failed to set socket in non-blocking mode.");
+
+	// Connect to server.
 	status = connect(sock, res->ai_addr, res->ai_addrlen);
-	if (status < 0) {
-		if (errno != EINPROGRESS) {
-			close(sock);
-			freeaddrinfo(res);
-
-			DIE(p, status, "Failed to connect to server.");
-		} else {
+	if (status == SOCKET_ERROR) {
+		if (WSAGetLastError() == WSAEWOULDBLOCK) {
 			req->connectionEstablished = 0; //Just to be safe
 			req->serverFd = sock;
 			_info("Server connection is pending: %d", req->serverFd);
 		}
-	} else {
+		else {
+			closesocket(sock);
+			freeaddrinfo(res);
+			DIE_IF(p, 1, "Failed to connect imemdiately.");
+		}
+	}
+	else {
 		req->connectionEstablished = 1;
 		req->serverFd = sock;
 		_info("Server connected immediately: %d", req->serverFd);
@@ -68,22 +67,12 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 	return 0;
 }
 
-static int handle_server_connection_completed(ProxyServer *p, Request *req) {
+static int handle_server_connection_completed(ProxyServer *p, Request *req, int error) {
 	assert (req->connectionEstablished == 0);
 	_info("Asynch connection has completed. Client %d server %d.",
 		req->clientFd, req->serverFd);
 	//Non-blocking connection is now done. See if it worked.
-	int valopt;
-	socklen_t lon = sizeof(int);
-
-	int status = getsockopt(req->serverFd, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon);
-	if (status < 0) {
-		shutdown_channel(p, req);
-		DIE(p, status, "Error in getsockopt()");
-	}
-	//Check the value of valopt
-	_info("SOL_SOCKET: %d", valopt);
-	if (valopt) {
+	if (error == 1) {
 		//Connection failed
 		//Set the response status message
 		req->responseStatusMessage->length = 0;
@@ -99,14 +88,14 @@ static int handle_server_connection_completed(ProxyServer *p, Request *req) {
 	return 0;
 }
 
-static void
-populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
-	FD_ZERO(pReadFdSet);
-	FD_ZERO(pWriteFdSet);
+static DWORD
+populate_fd_set(ProxyServer *p, WSAEVENT *eventList) {
+	DWORD count = 0;
+	eventList[count++] = p->serverEvent;
+	WSAEventSelect(p->serverSocket, p->serverEvent, FD_ACCEPT); //Register for accept event
 
-	//Set the server socket
-	FD_SET(p->serverSocket, pReadFdSet);
-	FD_SET(p->controlPipe[0], pReadFdSet);
+	//Deal with pipes later
+	//FD_SET(p->controlPipe[0], pReadFdSet);
 
 	//Set the clients
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -116,93 +105,129 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 			continue;
 		}
 
+		int setting = FD_CLOSE;
+
 		if (req->clientIOFlag & RW_STATE_READ) {
-			FD_SET(req->clientFd, pReadFdSet);
+			setting |= FD_READ;
 		}
 		if (req->clientIOFlag & RW_STATE_WRITE) {
-			FD_SET(req->clientFd, pWriteFdSet);
+			setting |= FD_WRITE;
 		}
+
+		WSAEventSelect(req->clientFd, req->clientEvent, setting); //Register for client socket event
+		eventList[count++] = req->clientEvent;
 
 		if (IS_CLOSED(req->serverFd)) {
 			//No server connection yet. Skip the rest.
 			continue;
 		}
 
+		setting = FD_CLOSE;
+
 		if (req->serverIOFlag & RW_STATE_READ) {
-			FD_SET(req->serverFd, pReadFdSet);
+			setting |= FD_READ;
 		}
-		if ((req->serverIOFlag & RW_STATE_WRITE) ||
-			(req->connectionEstablished == 0)) {
-			FD_SET(req->serverFd, pWriteFdSet);
+		if (req->serverIOFlag & RW_STATE_WRITE) {
+			setting |= FD_WRITE;
 		}
+		if (req->connectionEstablished == 0) {
+			setting |= FD_CONNECT;
+		}
+		WSAEventSelect(req->serverFd, req->serverEvent, setting); //Register for server socket event
+		eventList[count++] = req->serverEvent;
 	}
+
+	return count;
+}
+
+/*
+ * Checks if an event is set similar to FD_ISSSET in Unix.
+ * if event is set the returns 1 else 0. If event includes an error
+ * condition, such as connection failed, then error is set to 1. Else it is set to 0.
+ */
+int event_is_set(SOCKET sock, WSAEVENT event, long what, int *error) {
+	WSANETWORKEVENTS netEvent;
+
+	int status = WSAEnumNetworkEvents(sock, event, &netEvent);
+
+	assert(status != SOCKET_ERROR);
+
+	if (netEvent.lNetworkEvents & what) {
+		*error = netEvent.iErrorCode[what] != 0;
+
+		return 1;
+	}
+
+	return 0;
 }
 
 int server_loop(ProxyServer *p) {
-	fd_set readFdSet, writeFdSet;
 	struct timeval timeout;
 
 	p->runStatus = RUNNING;
 
+	WSAEVENT eventList[MAX_CLIENTS + 1];
+
 	while (p->runStatus == RUNNING) {
-		populate_fd_set(p, &readFdSet, &writeFdSet);
+		DWORD count = populate_fd_set(p, eventList);
 
 		timeout.tv_sec = 60 * 1;
 		timeout.tv_usec = 0;
 
-		int numEvents = select(FD_SETSIZE, &readFdSet, &writeFdSet, NULL, &timeout);
-		DIE(p, numEvents, "select() failed.");
+		int status = WSAWaitForMultipleEvents(count, eventList, FALSE, WSA_INFINITE, FALSE);
+		DIE_IF(p, status == WSA_WAIT_FAILED, "Failed to wait for events.");
 
-		if (numEvents == 0) {
-			_info("select() timed out. Looping back.");
-
-			continue;
-		}
 		//Make sense out of the event
-		if (FD_ISSET(p->serverSocket, &readFdSet)) {
-			_info("Client connected.");
-			int clientFd = accept(p->serverSocket, NULL, NULL);
+		int error;
 
+		if (event_is_set(p->serverSocket, p->serverEvent, FD_ACCEPT, &error)) {
+			_info("Client connected.");
+			SOCKET clientFd = accept(p->serverSocket, NULL, NULL);
 			DIE(p, clientFd, "accept() failed.");
 
 			int position = add_client_fd(p, clientFd);
 
-			int status = fcntl(clientFd, F_SETFL, O_NONBLOCK);
-			DIE(p, status,
-				"Failed to set non blocking mode for client socket.");
+			u_long iMode = 1;
+			status = ioctlsocket(clientFd, FIONBIO, &iMode);
+			DIE_IF(p, status == SOCKET_ERROR, "Failed to set socket in non-blocking mode.");
+
 			handle_client_connect(p, p->requests + position);
 		}
-		else if (FD_ISSET(p->controlPipe[0], &readFdSet)) {
+		/*else if (FD_ISSET(p->controlPipe[0], &readFdSet)) {
 			handle_control_command(p);
-		} else {
+		}*/ else {
 			for (int i = 0; i < MAX_CLIENTS; ++i) {
-				if (IS_CLOSED(p->requests[i].clientFd)) {
+				Request *req = p->requests + i;
+
+				if (IS_CLOSED(req->clientFd)) {
 					//This channel is not in use
 					continue;
 				}
-				if (FD_ISSET(p->requests[i].clientFd, &readFdSet)) {
+				if (event_is_set(req->clientFd, req->clientEvent, FD_READ, &error)) {
 					handle_client_write(p, i);
-				} else if (FD_ISSET(p->requests[i].clientFd, &writeFdSet)) {
+				}
+				else if (event_is_set(req->clientFd, req->clientEvent, FD_WRITE, &error)) {
 					handle_client_read(p, i);
 				}
-				/*
-				 * We need to try to write to a server first before we try to read
-				 * to catch any asynch connection error. If we read first,
-				 * system seems to be overwriting the connection error and we
-				 * can't detect error using getsockopt(SO_ERROR) any more.
-				 */
+				else if (event_is_set(req->clientFd, req->clientEvent, FD_CLOSE, &error)) {
+					on_client_disconnect(p, req);
+				}
+
 				if (IS_CLOSED(p->requests[i].serverFd)) {
 					//Server not connected yet
 					continue;
 				}
-				if (FD_ISSET(p->requests[i].serverFd, &writeFdSet)) {
-					if (p->requests[i].connectionEstablished == 0) {
-						handle_server_connection_completed(p, p->requests + i);
-					} else {
-						handle_server_read(p, i);
-					}
-				} else if (FD_ISSET(p->requests[i].serverFd, &readFdSet)) {
+				if (event_is_set(req->serverFd, req->serverEvent, FD_CONNECT, &error)) {
+					handle_server_connection_completed(p, req, error);
+				}
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_WRITE, &error)) {
+					handle_server_read(p, i);
+				}
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_READ, &error)) {
 					handle_server_write(p, i);
+				}
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_CLOSE, &error)) {
+					on_server_disconnect(p, req);
 				}
 			}
 		}
@@ -213,8 +238,8 @@ int server_loop(ProxyServer *p) {
 	return 0;
 }
 
-int create_server_socket(ProxyServer *p, SOCKET *sock) {
-	*sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+int create_server_socket(ProxyServer *p) {
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	DIE_IF(p, sock == INVALID_SOCKET, "Failed to open socket.");
 
@@ -229,6 +254,34 @@ int create_server_socket(ProxyServer *p, SOCKET *sock) {
 	status = listen(sock, 10);
 	DIE_IF(p, status == SOCKET_ERROR, "Failed to listen on socket.");
 
+	p->serverSocket = sock;
+
+	return 0;
+}
+
+int compat_new_proxy_server(ProxyServer *p) {
+	p->serverEvent = WSACreateEvent();
+
+	return 0;
+}
+
+int compat_new_request(Request *req) {
+	req->serverEvent = WSACreateEvent();
+	req->clientEvent = WSACreateEvent();
+
+	return 0;
+}
+
+int compat_delete_proxy_server(ProxyServer *p) {
+	WSACloseEvent(p->serverEvent);
+
+	return 0;
+}
+
+int compat_delete_request(Request *req) {
+	WSACloseEvent(req->serverEvent);
+	WSACloseEvent(req->clientEvent);
+
 	return 0;
 }
 
@@ -241,7 +294,7 @@ int os_close_pipe(HANDLE p) {
 }
 
 int os_create_thread(HANDLE *thread, int (*start_routine)(void*), void *arg) {
-	*thread = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
+	*thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE ) start_routine, arg, 0, NULL);
 	return *thread == NULL ? -1 : 0;
 }
 
@@ -270,4 +323,10 @@ int os_write_pipe(HANDLE fd, void *buffer, size_t size) {
 	BOOL status = WriteFile(fd, buffer, size, &sizeWritten, NULL);
 
 	return status == 0 ? -1 : sizeWritten;
+}
+
+int os_gettimeofday(FILETIME *time) {
+	GetSystemTimeAsFileTime(time);
+
+	return 0;
 }

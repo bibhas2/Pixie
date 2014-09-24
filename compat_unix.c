@@ -217,9 +217,8 @@ int server_loop(ProxyServer *p) {
 	return 0;
 }
 
-int create_server_socket(ProxyServer *p, int *sockOut) {
+int create_server_socket(ProxyServer *p) {
 	int sock = socket(PF_INET, SOCK_STREAM, 0);
-
 	DIE(p, sock, "Failed to open socket.");
 
 	int status = fcntl(sock, F_SETFL, O_NONBLOCK);
@@ -237,14 +236,29 @@ int create_server_socket(ProxyServer *p, int *sockOut) {
 
 	_info("Proxy server binding to port: %d", p->port);
 	status = bind(sock, (struct sockaddr*) &addr, sizeof(addr));
-
 	DIE(p, status, "Failed to bind to port.");
 
 	status = listen(sock, 10);
 	DIE(p, status, "Failed to listen.");
 
-	*sockOut = sock;
+	p->serverSocket = sock;
 
+	return 0;
+}
+
+int compat_new_proxy_server(ProxyServer *p) {
+	return 0;
+}
+
+int compat_new_request(Request *req) {
+	return 0;
+}
+
+int compat_delete_proxy_server(ProxyServer *p) {
+	return 0;
+}
+
+int compat_delete_request(Request *req) {
 	return 0;
 }
 
@@ -275,4 +289,8 @@ int os_read_pipe(int fd, void *buffer, size_t size) {
 
 int os_write_pipe(int fd, void *buffer, size_t size) {
 	return write(fd, buffer, size);
+}
+
+int os_gettimeofday(struct timeval *time) {
+	return gettimeofday(time, NULL);
 }
