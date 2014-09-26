@@ -27,10 +27,11 @@ int connect_to_server(ProxyServer *p, Request *req, const char *host, int port) 
 	_snprintf_s(port_str, (size_t) sizeof(port_str), (size_t) sizeof(port_str), "%d", port);
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = PF_INET;
+	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
 	_info("Resolving name: %s.", host);
-	int status = getaddrinfo(host, (const char*) port, &hints, &res);
+	int status = getaddrinfo(host, port_str, &hints, &res);
 	DIE_IF(p, status != 0, "getaddrinfo() failed.");
 	DIE_IF(p, res == NULL, "Failed to resolve address.");
 
@@ -146,7 +147,7 @@ populate_fd_set(ProxyServer *p, WSAEVENT *eventList) {
  * if event is set the returns 1 else 0. If event includes an error
  * condition, such as connection failed, then error is set to 1. Else it is set to 0.
  */
-int event_is_set(SOCKET sock, WSAEVENT event, long what, int *error) {
+int event_is_set(SOCKET sock, WSAEVENT event, long what, int what_bit, int *error) {
 	WSANETWORKEVENTS netEvent;
 
 	int status = WSAEnumNetworkEvents(sock, event, &netEvent);
@@ -154,7 +155,7 @@ int event_is_set(SOCKET sock, WSAEVENT event, long what, int *error) {
 	assert(status != SOCKET_ERROR);
 
 	if (netEvent.lNetworkEvents & what) {
-		*error = netEvent.iErrorCode[what] != 0;
+		*error = netEvent.iErrorCode[what_bit] != 0;
 
 		return 1;
 	}
@@ -181,7 +182,7 @@ int server_loop(ProxyServer *p) {
 		//Make sense out of the event
 		int error;
 
-		if (event_is_set(p->serverSocket, p->serverEvent, FD_ACCEPT, &error)) {
+		if (event_is_set(p->serverSocket, p->serverEvent, FD_ACCEPT, FD_ACCEPT_BIT, &error)) {
 			_info("Client connected.");
 			SOCKET clientFd = accept(p->serverSocket, NULL, NULL);
 			DIE(p, clientFd, "accept() failed.");
@@ -204,13 +205,13 @@ int server_loop(ProxyServer *p) {
 					//This channel is not in use
 					continue;
 				}
-				if (event_is_set(req->clientFd, req->clientEvent, FD_READ, &error)) {
+				if (event_is_set(req->clientFd, req->clientEvent, FD_READ, FD_READ_BIT, &error)) {
 					handle_client_write(p, i);
 				}
-				else if (event_is_set(req->clientFd, req->clientEvent, FD_WRITE, &error)) {
+				else if (event_is_set(req->clientFd, req->clientEvent, FD_WRITE, FD_WRITE_BIT, &error)) {
 					handle_client_read(p, i);
 				}
-				else if (event_is_set(req->clientFd, req->clientEvent, FD_CLOSE, &error)) {
+				else if (event_is_set(req->clientFd, req->clientEvent, FD_CLOSE, FD_CLOSE_BIT, &error)) {
 					on_client_disconnect(p, req);
 				}
 
@@ -218,16 +219,16 @@ int server_loop(ProxyServer *p) {
 					//Server not connected yet
 					continue;
 				}
-				if (event_is_set(req->serverFd, req->serverEvent, FD_CONNECT, &error)) {
+				if (event_is_set(req->serverFd, req->serverEvent, FD_CONNECT, FD_CONNECT_BIT, &error)) {
 					handle_server_connection_completed(p, req, error);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_WRITE, &error)) {
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_WRITE, FD_WRITE_BIT, &error)) {
 					handle_server_read(p, i);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_READ, &error)) {
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_READ, FD_READ_BIT, &error)) {
 					handle_server_write(p, i);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_CLOSE, &error)) {
+				else if (event_is_set(req->serverFd, req->serverEvent, FD_CLOSE, FD_CLOSE_BIT, &error)) {
 					on_server_disconnect(p, req);
 				}
 			}
@@ -249,7 +250,8 @@ int create_server_socket(ProxyServer *p) {
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	addr.sin_port = htons(p->port);
-
+	
+	_info("Proxy server binding to port: %d", p->port);
 	int status = bind(sock, (SOCKADDR *)&addr, sizeof(addr));
 	DIE_IF(p, status == SOCKET_ERROR, "Failed to bind to port");
 	status = listen(sock, 10);
@@ -350,7 +352,7 @@ int os_mkdir(const char *dir) {
 void os_get_home_directory(String *path) {
 	char buff[MAX_PATH];
 
-	if (SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, buff) != S_OK) {
+	if (SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, buff) == S_OK) {
 		stringAppendCString(path, buff);
 	}
 }
