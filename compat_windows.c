@@ -107,9 +107,10 @@ populate_fd_set(ProxyServer *p, WSAEVENT *eventList) {
 			continue;
 		}
 
-		int setting = FD_CLOSE;
+		int setting = FD_CLOSE; //Awlays interested in disconenct events
 
-		if (req->clientIOFlag & RW_STATE_READ) {
+		//Request a FD_READ event only if no write is pending on the other end.
+		if ((req->clientIOFlag & RW_STATE_READ) && !(req->serverIOFlag & RW_STATE_WRITE)) {
 			setting |= FD_READ;
 		}
 		if (req->clientIOFlag & RW_STATE_WRITE) {
@@ -124,9 +125,10 @@ populate_fd_set(ProxyServer *p, WSAEVENT *eventList) {
 			continue;
 		}
 
-		setting = FD_CLOSE;
+		setting = FD_CLOSE; //Awlays interested in disconenct events
 
-		if (req->serverIOFlag & RW_STATE_READ) {
+		//Request a FD_READ event only if no write is pending on the other end.
+		if ((req->serverIOFlag & RW_STATE_READ) && !(req->clientIOFlag & RW_STATE_WRITE)) {
 			setting |= FD_READ;
 		}
 		if (req->serverIOFlag & RW_STATE_WRITE) {
@@ -191,11 +193,9 @@ int server_loop(ProxyServer *p) {
 				assert(status != SOCKET_ERROR);
 
 				if (netEvent.lNetworkEvents & FD_READ) {
-					_info("*** Client is readable.");
 					handle_client_write(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_WRITE) {
-					_info("*** Client is writable.");
 					handle_client_read(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_CLOSE) {
@@ -216,11 +216,9 @@ int server_loop(ProxyServer *p) {
 					handle_server_connection_completed(p, req, error);
 				}
 				if (netEvent.lNetworkEvents & FD_WRITE) {
-					_info("*** Server is writable.");
 					handle_server_read(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_READ) {
-					_info("*** Server is readable.");
 					handle_server_write(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_CLOSE) {

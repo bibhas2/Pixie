@@ -119,8 +119,8 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 		if (IS_CLOSED(req->clientFd)) {
 			continue;
 		}
-
-		if (req->clientIOFlag & RW_STATE_READ) {
+		//Request a FD_READ event only if no write is pending on the other end.
+		if ((req->clientIOFlag & RW_STATE_READ) && !(req->serverIOFlag & RW_STATE_WRITE)) {
 			FD_SET(req->clientFd, pReadFdSet);
 		}
 		if (req->clientIOFlag & RW_STATE_WRITE) {
@@ -131,8 +131,8 @@ populate_fd_set(ProxyServer *p, fd_set *pReadFdSet, fd_set *pWriteFdSet) {
 			//No server connection yet. Skip the rest.
 			continue;
 		}
-
-		if (req->serverIOFlag & RW_STATE_READ) {
+		//Request a FD_READ event only if no write is pending on the other end.
+		if ((req->serverIOFlag & RW_STATE_READ) && !(req->clientIOFlag & RW_STATE_WRITE)) {
 			FD_SET(req->serverFd, pReadFdSet);
 		}
 		if ((req->serverIOFlag & RW_STATE_WRITE) ||

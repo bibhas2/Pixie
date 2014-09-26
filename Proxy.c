@@ -775,13 +775,7 @@ int handle_client_write(ProxyServer *p, Request *req) {
 	//If so, do not read the data from the client now.
 	if (req->serverIOFlag & RW_STATE_WRITE) {
 		_info("Write to server is pending. Will not read from client.");
-#ifdef _WIN32
-		//In Windows cause the FD_READ event to fire again
-		//by doing a 0 byte dummy read. In UNIX the event keeps firing as long as there's data to read.
-		recv(req->clientFd,
-			req->requestBuffer->buffer,
-			0, 0);
-#endif
+
 		return -1;
 	}
 
@@ -819,12 +813,7 @@ int handle_server_write(ProxyServer *p, Request *req) {
 	//If so, do not read the data from the server now.
 	if (req->clientIOFlag & RW_STATE_WRITE) {
 		_info("Write to client is pending. Will not read from server.");
-#ifdef _WIN32
-		//In windows reenable the FD_READ event by doing a dummy read of 0 bytes
-		recv(req->serverFd,
-			req->responseBuffer->buffer,
-			0, 0);
-#endif
+
 		return -1;
 	}
 
