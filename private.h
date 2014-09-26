@@ -30,6 +30,8 @@ int on_server_disconnect(ProxyServer *p, Request *req);
 #define IS_CLOSED(fd) (fd == INVALID_SOCKET)
 #define IS_OPEN(fd) (fd != INVALID_SOCKET)
 #define INVALID_PIPE INVALID_HANDLE_VALUE
+#define snprintf _snprintf
+
 int os_close_socket(SOCKET s);
 int os_close_pipe(HANDLE p);
 int os_create_thread(HANDLE *thread, int (*start_routine)(void*), void *arg);
