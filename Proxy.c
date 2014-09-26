@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -100,12 +102,12 @@ static void reset_request_state(Request *req) {
 	req->headerValue = NULL;
 	req->requestState = REQ_STATE_NONE;
 	req->connectionEstablished = 0;
-	/*
+	
 	req->requestStartTime.tv_sec = 0;
 	req->requestStartTime.tv_usec = 0;
 	req->responseEndTime.tv_sec = 0;
 	req->responseEndTime.tv_usec = 0;
-	*/
+	
 	req->responseHeaderParseState = RES_HEADER_STATE_PROTOCOL;
 }
 
@@ -697,13 +699,7 @@ int handle_client_read(ProxyServer *p, int position) {
 		bytesWritten, req->responseBuffer->length);
 
 	if (bytesWritten < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			return -1;
-		}
-		//Read will block. Not an error.
-		_info("Write block detected.");
-
-		return 0;
+		return bytesWritten;
 	}
 	if (bytesWritten == 0) {
 		//Client has disconnected. We convert that to an error.
@@ -750,13 +746,7 @@ int handle_server_read(ProxyServer *p, int position) {
 		req->requestBuffer->length);
 
 	if (bytesWritten < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			return -1;
-		}
-		//Read will block. Not an error.
-		_info("Write block detected.");
-
-		return 0;
+		return bytesWritten;
 	}
 	if (bytesWritten == 0) {
 		//Client has disconnected. We convert that to an error.
@@ -798,15 +788,10 @@ int handle_client_write(ProxyServer *p, int position) {
 		req->clientFd, bytesRead);
 
 	if (bytesRead < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			return -1;
-		}
-		//Read will block. Not an error.
-		_info("Read block detected.");
-		return 0;
+		return bytesRead;
 	}
 	if (bytesRead == 0) {
-		//Client has disconnected. 
+		//Client has disconnected. Only happens in UNIX.
 		on_client_disconnect(p, req);
 
 		return -1;
@@ -855,15 +840,10 @@ int handle_server_write(ProxyServer *p, int position) {
 	assert(os_gettimeofday(&req->responseEndTime) == 0);
 
 	if (bytesRead < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			return -1;
-		}
-		//Read will block. Not an error.
-		_info("Read block detected.");
-		return 0;
+		return bytesRead;
 	}
 	if (bytesRead == 0) {
-		//Server has disconnected. 
+		//Server has disconnected. Only happens in UNIX.
 		on_server_disconnect(p, req);
 
 		return -1;
