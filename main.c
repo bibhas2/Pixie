@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <string.h>
 #include "Proxy.h"
 
@@ -11,10 +11,17 @@ static void print_request_end(ProxyServer *p, Request *req) {
 }
 
 int main(int argc, char **argv) {
-	int port = 8080;
-	
+	int port = 9090;
+#ifdef _WIN32
+	WSADATA wsaData;
+	int status = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (status != NO_ERROR) {
+		wprintf(L"WSAStartup function failed with error: %d\n", status);
+		return 1;
+	}
+#endif
 	int c;
-
+	/*
 	while ((c = getopt(argc, argv, "vp:")) != -1) {
 		if (c == 'v') {
 			proxySetTrace(1);
@@ -24,12 +31,14 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-
+	*/
 	ProxyServer *p = newProxyServer(port);
 
 	p->persistenceEnabled = 1;
 	p->onBeginRequest = print_request_start;
 	p->onEndRequest = print_request_end;
+	
+	proxySetTrace(1);
 
 	proxyServerStartInBackground(p);
 	
@@ -46,4 +55,8 @@ int main(int argc, char **argv) {
 	}
 
 	deleteProxyServer(p);
+
+#ifdef _WIN32
+	WSACleanup();
+#endif
 }
