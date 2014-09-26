@@ -142,29 +142,9 @@ populate_fd_set(ProxyServer *p, WSAEVENT *eventList) {
 	return count;
 }
 
-/*
- * Checks if an event is set similar to FD_ISSSET in Unix.
- * if event is set the returns 1 else 0. If event includes an error
- * condition, such as connection failed, then error is set to 1. Else it is set to 0.
- */
-int event_is_set(SOCKET sock, WSAEVENT event, long what, int what_bit, int *error) {
-	WSANETWORKEVENTS netEvent;
-
-	int status = WSAEnumNetworkEvents(sock, event, &netEvent);
-
-	assert(status != SOCKET_ERROR);
-
-	if (netEvent.lNetworkEvents & what) {
-		*error = netEvent.iErrorCode[what_bit] != 0;
-
-		return 1;
-	}
-
-	return 0;
-}
-
 int server_loop(ProxyServer *p) {
 	struct timeval timeout;
+	WSANETWORKEVENTS netEvent;
 
 	p->runStatus = RUNNING;
 
@@ -180,9 +160,10 @@ int server_loop(ProxyServer *p) {
 		DIE_IF(p, status == WSA_WAIT_FAILED, "Failed to wait for events.");
 
 		//Make sense out of the event
-		int error;
+		status = WSAEnumNetworkEvents(p->serverSocket, p->serverEvent, &netEvent);
+		assert(status != SOCKET_ERROR);
 
-		if (event_is_set(p->serverSocket, p->serverEvent, FD_ACCEPT, FD_ACCEPT_BIT, &error)) {
+		if (netEvent.lNetworkEvents & FD_ACCEPT) {
 			_info("Client connected.");
 			SOCKET clientFd = accept(p->serverSocket, NULL, NULL);
 			DIE(p, clientFd, "accept() failed.");
@@ -205,13 +186,18 @@ int server_loop(ProxyServer *p) {
 					//This channel is not in use
 					continue;
 				}
-				if (event_is_set(req->clientFd, req->clientEvent, FD_READ, FD_READ_BIT, &error)) {
+
+				status = WSAEnumNetworkEvents(req->clientFd, req->clientEvent, &netEvent);
+				assert(status != SOCKET_ERROR);
+
+				if (netEvent.lNetworkEvents & FD_READ) {
 					handle_client_write(p, i);
 				}
-				else if (event_is_set(req->clientFd, req->clientEvent, FD_WRITE, FD_WRITE_BIT, &error)) {
+				if (netEvent.lNetworkEvents & FD_WRITE) {
+					_info("*** Client is writable.");
 					handle_client_read(p, i);
 				}
-				else if (event_is_set(req->clientFd, req->clientEvent, FD_CLOSE, FD_CLOSE_BIT, &error)) {
+				if (netEvent.lNetworkEvents & FD_CLOSE) {
 					on_client_disconnect(p, req);
 				}
 
@@ -219,16 +205,22 @@ int server_loop(ProxyServer *p) {
 					//Server not connected yet
 					continue;
 				}
-				if (event_is_set(req->serverFd, req->serverEvent, FD_CONNECT, FD_CONNECT_BIT, &error)) {
+
+				status = WSAEnumNetworkEvents(req->serverFd, req->serverEvent, &netEvent);
+				assert(status != SOCKET_ERROR);
+
+				if (netEvent.lNetworkEvents & FD_CONNECT) {
+					int error = netEvent.iErrorCode[FD_CONNECT_BIT] != 0;
+
 					handle_server_connection_completed(p, req, error);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_WRITE, FD_WRITE_BIT, &error)) {
+				if (netEvent.lNetworkEvents & FD_WRITE) {
 					handle_server_read(p, i);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_READ, FD_READ_BIT, &error)) {
+				if (netEvent.lNetworkEvents & FD_READ) {
 					handle_server_write(p, i);
 				}
-				else if (event_is_set(req->serverFd, req->serverEvent, FD_CLOSE, FD_CLOSE_BIT, &error)) {
+				if (netEvent.lNetworkEvents & FD_CLOSE) {
 					on_server_disconnect(p, req);
 				}
 			}
