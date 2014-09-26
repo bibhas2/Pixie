@@ -321,8 +321,8 @@ int schedule_write_to_client(ProxyServer *p, Request *req) {
 	if (p->onQueueWriteToClient != NULL) {
 		p->onQueueWriteToClient(p, req);
 	}
-
-	return 0;
+	//Write immdiately 
+	return handle_client_read(p, req);
 }
 
 int schedule_write_to_server(ProxyServer *p, Request *req) {
@@ -353,6 +353,11 @@ int schedule_write_to_server(ProxyServer *p, Request *req) {
 
 	if (p->onQueueWriteToServer != NULL) {
 		p->onQueueWriteToServer(p, req);
+	}
+
+	//If connection is made, write immediately
+	if (req->connectionEstablished == 1) {
+		handle_server_read(p, req);
 	}
 
 	return 0;
@@ -670,9 +675,7 @@ int on_server_disconnect(ProxyServer *p, Request *req) {
 /*
  * Client has finished reading data. Let's write more if needed.
  */
-int handle_client_read(ProxyServer *p, int position) {
-	Request *req = p->requests + position;
-
+int handle_client_read(ProxyServer *p, Request *req) {
 	if (!(req->clientIOFlag & RW_STATE_WRITE)) {
 		_info("We are not trying to write to client socket.");
 
@@ -698,9 +701,12 @@ int handle_client_read(ProxyServer *p, int position) {
 	_info("Written to client (%d) %d of %d bytes", req->clientFd,
 		bytesWritten, req->responseBuffer->length);
 
+	//DIE(p, bytesWritten, "Write to client failed.");
+
 	if (bytesWritten < 0) {
 		return bytesWritten;
 	}
+
 	if (bytesWritten == 0) {
 		//Client has disconnected. We convert that to an error.
 		_info("Client seems to have disconnected: %d", req->clientFd);
@@ -721,10 +727,7 @@ int handle_client_read(ProxyServer *p, int position) {
 /*
  * Server has read data. Let's write some more if needed.
  */
-int handle_server_read(ProxyServer *p, int position) {
-	Request *req = p->requests + position;
-
-
+int handle_server_read(ProxyServer *p, Request *req) {
 	if (!(req->serverIOFlag & RW_STATE_WRITE)) {
 		_info("We are not trying to write to the server socket.");
 
@@ -767,14 +770,18 @@ int handle_server_read(ProxyServer *p, int position) {
 /*
  * Client has written data. Let's read it.
  */
-int handle_client_write(ProxyServer *p, int position) {
-	Request *req = p->requests + position;
-
+int handle_client_write(ProxyServer *p, Request *req) {
 	//Check to see if there is any pending write to the server
 	//If so, do not read the data from the client now.
 	if (req->serverIOFlag & RW_STATE_WRITE) {
 		_info("Write to server is pending. Will not read from client.");
-
+#ifdef _WIN32
+		//In Windows cause the FD_READ event to fire again
+		//by doing a 0 byte dummy read. In UNIX the event keeps firing as long as there's data to read.
+		recv(req->clientFd,
+			req->requestBuffer->buffer,
+			0, 0);
+#endif
 		return -1;
 	}
 
@@ -807,14 +814,17 @@ int handle_client_write(ProxyServer *p, int position) {
 /*
  * Server has written data. Let's read it.
  */
-int handle_server_write(ProxyServer *p, int position) {
-	Request *req = p->requests + position;
-
+int handle_server_write(ProxyServer *p, Request *req) {
 	//Check to see if there is any pending write to the client
 	//If so, do not read the data from the server now.
 	if (req->clientIOFlag & RW_STATE_WRITE) {
 		_info("Write to client is pending. Will not read from server.");
-
+#ifdef _WIN32
+		//In windows reenable the FD_READ event by doing a dummy read of 0 bytes
+		recv(req->serverFd,
+			req->responseBuffer->buffer,
+			0, 0);
+#endif
 		return -1;
 	}
 

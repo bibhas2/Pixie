@@ -191,11 +191,12 @@ int server_loop(ProxyServer *p) {
 				assert(status != SOCKET_ERROR);
 
 				if (netEvent.lNetworkEvents & FD_READ) {
-					handle_client_write(p, i);
+					_info("*** Client is readable.");
+					handle_client_write(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_WRITE) {
 					_info("*** Client is writable.");
-					handle_client_read(p, i);
+					handle_client_read(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_CLOSE) {
 					on_client_disconnect(p, req);
@@ -215,10 +216,12 @@ int server_loop(ProxyServer *p) {
 					handle_server_connection_completed(p, req, error);
 				}
 				if (netEvent.lNetworkEvents & FD_WRITE) {
-					handle_server_read(p, i);
+					_info("*** Server is writable.");
+					handle_server_read(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_READ) {
-					handle_server_write(p, i);
+					_info("*** Server is readable.");
+					handle_server_write(p, req);
 				}
 				if (netEvent.lNetworkEvents & FD_CLOSE) {
 					on_server_disconnect(p, req);
